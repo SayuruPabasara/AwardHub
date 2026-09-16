@@ -1,0 +1,31 @@
+# =============================
+# Server Configuration
+# =============================
+server.port=8080
+
+# =============================
+# Application Name
+# =============================
+spring.application.name=awardhub
+
+# =============================
+# MySQL Database
+# =============================
+spring.datasource.url=jdbc:mysql://localhost:3306/awardhub?createDatabaseIfNotExist=true
+spring.datasource.username=root
+spring.datasource.password=Nimbus@2001
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# =============================
+# JPA / Hibernate
+# =============================
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
+
+# =============================
+# Logging
+# =============================
+logging.level.org.springframework.security=DEBUG
+logging.level.com.awardhub=DEBUG
