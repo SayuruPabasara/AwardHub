@@ -1,11 +1,11 @@
-package com.awardhub.awardhub.profile.service;
+package com.awardhub.profile.service;
 
-import com.awardhub.awardhub.common.audit.AuditLogService;
-import com.awardhub.awardhub.common.exception.ResourceNotFoundException;
-import com.awardhub.awardhub.profile.dto.NomineeProfileResponse;
-import com.awardhub.awardhub.profile.dto.UpdateNomineeProfileRequest;
-import com.awardhub.awardhub.profile.repository.NomineeProfileRepository;
-import com.awardhub.awardhub.user.entity.Nominee;
+import com.awardhub.common.audit.AuditLogService;
+import com.awardhub.common.exception.ResourceNotFoundException;
+import com.awardhub.profile.dto.NomineeProfileResponse;
+import com.awardhub.profile.dto.UpdateNomineeProfileRequest;
+import com.awardhub.profile.repository.NomineeProfileRepository;
+import com.awardhub.user.entity.Nominee;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

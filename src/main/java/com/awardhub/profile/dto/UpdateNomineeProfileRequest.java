@@ -1,4 +1,4 @@
-package com.awardhub.awardhub.profile.dto;
+package com.awardhub.profile.dto;
 
 public class UpdateNomineeProfileRequest {
 

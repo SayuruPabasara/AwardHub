@@ -1,7 +1,7 @@
-package com.awardhub.awardhub.profile.dto;
+package com.awardhub.profile.dto;
 
-import com.awardhub.awardhub.user.entity.AccountStatus;
-import com.awardhub.awardhub.user.entity.Nominee;
+import com.awardhub.user.entity.AccountStatus;
+import com.awardhub.user.entity.Nominee;
 
 public class NomineeProfileResponse {
 

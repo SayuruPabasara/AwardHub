@@ -1,10 +1,10 @@
-package com.awardhub.awardhub.profile.controller;
+package com.awardhub.profile.controller;
 
-import com.awardhub.awardhub.common.dto.ApiResponse;
-import com.awardhub.awardhub.profile.dto.NomineeProfileResponse;
-import com.awardhub.awardhub.profile.dto.UpdateNomineeProfileRequest;
-import com.awardhub.awardhub.profile.service.NomineeProfileService;
-import com.awardhub.awardhub.user.entity.User;
+import com.awardhub.common.dto.ApiResponse;
+import com.awardhub.profile.dto.NomineeProfileResponse;
+import com.awardhub.profile.dto.UpdateNomineeProfileRequest;
+import com.awardhub.profile.service.NomineeProfileService;
+import com.awardhub.user.entity.User;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
