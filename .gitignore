@@ -34,3 +34,10 @@ build/
 src/main/resources/application.properties 
 .postman/ 
 postman/ 
+  
+# Frontend (React/Vite)  
+node_modules/  
+frontend/node_modules/  
+frontend/dist/  
+frontend/build/  
+frontend/.chrome-temp/ 

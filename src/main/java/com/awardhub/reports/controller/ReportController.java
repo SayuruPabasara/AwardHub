@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/reports")
 public class ReportController {
@@ -47,5 +48,11 @@ public class ReportController {
     public ResponseEntity<ApiResponse<ReportResponseDTO>> archive(@PathVariable Long id) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Report archived",
                 reportService.archive(id)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Object>> delete(@PathVariable Long id) {
+        reportService.delete(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Report deleted", null));
     }
 }

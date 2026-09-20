@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/feedback")
 public class FeedbackController {
@@ -47,5 +48,11 @@ public class FeedbackController {
                                                                          @RequestParam FeedbackStatus status) {
         return ResponseEntity.ok(new ApiResponse<>(true, "Status updated",
                 feedbackService.updateStatus(id, status)));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Object>> delete(@PathVariable Long id) {
+        feedbackService.delete(id);
+        return ResponseEntity.ok(new ApiResponse<>(true, "Feedback deleted", null));
     }
 }

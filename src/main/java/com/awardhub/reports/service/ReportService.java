@@ -63,6 +63,13 @@ public class ReportService {
         return toDTO(reportRepository.save(r));
     }
 
+    public void delete(Long id) {
+        if (!reportRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Report not found");
+        }
+        reportRepository.deleteById(id);
+    }
+
     private ReportResponseDTO toDTO(Report r) {
         ReportResponseDTO dto = new ReportResponseDTO();
         dto.setId(r.getId());

@@ -84,6 +84,13 @@ public class FeedbackService {
         return toDTO(feedbackRepository.save(fb));
     }
 
+    public void delete(Long id) {
+        if (!feedbackRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Feedback not found");
+        }
+        feedbackRepository.deleteById(id);
+    }
+
     // ---------- Mapper ----------
     private FeedbackResponseDTO toDTO(Feedback fb) {
         FeedbackResponseDTO dto = new FeedbackResponseDTO();
