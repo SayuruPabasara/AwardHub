@@ -1,0 +1,38 @@
+
+    # Named instance (SQLEXPRESS) + Windows integrated auth by default.
+    # Override any part via env vars, e.g. MSSQL_URL for a full custom JDBC URL.
+    #spring:datasource:url=jdbc:sqlserver://INVWAZ\\SQLEXPRESS;databaseName=MelodyMart;encrypt=false;trustServerCertificate=true:
+    #url: ${MSSQL_URL:jdbc:sqlserver://INVWAZ\\SQLEXPRESS;databaseName=awardhub;encrypt=false;trustServerCertificate=true}
+    spring:
+      datasource:
+        url: ${MSSQL_URL:jdbc:sqlserver://localhost;instanceName=SQLEXPRESS;databaseName=awardhub;encrypt=true;trustServerCertificate=true}
+        username: ${MSSQL_USER:sa}
+        password: ${MSSQL_PASSWORD:123}
+        driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+
+      jpa:
+        hibernate:
+          ddl-auto: ${JPA_DDL_AUTO:update}
+        open-in-view: false
+        properties:
+          hibernate:
+            format_sql: true
+            dialect: org.hibernate.dialect.SQLServerDialect
+
+      jackson:
+        serialization:
+          write-dates-as-timestamps: false
+
+    server:
+      port: ${SERVER_PORT:8080}
+
+    logging:
+      level:
+        org.hibernate.SQL: ${SQL_LOG_LEVEL:warn}
+
+    app:
+      cors:
+        allowed-origins: ${CORS_ORIGINS:http://localhost:8443,http://127.0.0.1:8443,http://localhost:5173}
+      jwt:
+        secret: ${JWT_SECRET:awardhub-dev-secret-change-me-0123456789-awardhub-dev-secret}
+        expiration-ms: ${JWT_EXPIRATION_MS:86400000}
