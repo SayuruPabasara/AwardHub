@@ -10,6 +10,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
+
 @RestController
 @RequestMapping("/api/profile/nominee")
 public class NomineeProfileController {
@@ -32,7 +34,7 @@ public class NomineeProfileController {
     @PutMapping("/me")
     @PreAuthorize("hasRole('NOMINEE')")
     public ResponseEntity<ApiResponse<NomineeProfileResponse>> updateMyProfile(
-            @RequestBody UpdateNomineeProfileRequest request,
+            @Valid @RequestBody UpdateNomineeProfileRequest request,
             @AuthenticationPrincipal User user
     ) {
         NomineeProfileResponse updated = profileService.updateProfile(user.getUserID(), request);

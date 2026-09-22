@@ -1,20 +1,47 @@
 package com.awardhub.profile.dto;
 
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+
 public class UpdateNomineeProfileRequest {
 
+    @Pattern(regexp = "^[0-9+()\\-\\s]{7,20}$", message = "Invalid contact number format")
     private String contactNumber;
+
+    @Size(max = 20, message = "NIC/Passport must be at most 20 characters")
     private String nicPassport;
+
     private String dateOfBirth;
+
     private String gender;
+
+    @Size(max = 200)
     private String street;
+
+    @Size(max = 100)
     private String city;
+
+    @Size(max = 100)
     private String state;
+
+    @Size(max = 20)
     private String zip;
+
+    @Size(max = 150)
     private String organization;
+
+    @Size(max = 150)
     private String jobTitle;
+
+    @Size(max = 5000, message = "Biography must be at most 5000 characters")
     private String biography;
+
+    // Multivalued fields sent as newline- or comma-delimited text (matches the
+    // report's note that these are "stored as delimited text" for now).
     private String education;
+
     private String achievements;
+
     private String references;
 
     public UpdateNomineeProfileRequest() {}
