@@ -55,4 +55,4 @@ These are the backend files that implement **my sprint tasks**. Some are shared
 infrastructure the sprint features depend on (security/JWT, audit service, DTOs,
 application.yml, pom.xml) — included so the feature code is understandable and
 runnable in context. The full project (frontend, complete backend, database
-scripts) lives in the group repository..
+scripts) lives in the group repository.
