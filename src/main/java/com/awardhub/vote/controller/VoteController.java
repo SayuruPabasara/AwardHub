@@ -1,10 +1,12 @@
-package com.awardhub.controller;
+package com.awardhub.vote.controller;
 
-import com.awardhub.dto.DTOs.MessageResponse;
-import com.awardhub.dto.DTOs.VoteDto;
-import com.awardhub.dto.DTOs.VoteRequest;
-import com.awardhub.security.CurrentUser;
-import com.awardhub.service.VoteService;
+import com.awardhub.common.exception.UnauthorizedActionException;
+import com.awardhub.user.entity.User;
+import com.awardhub.vote.dto.VoteDTOs.MessageResponse;
+import com.awardhub.vote.dto.VoteDTOs.VoteDto;
+import com.awardhub.vote.dto.VoteDTOs.VoteRequest;
+import com.awardhub.vote.security.CurrentUser;
+import com.awardhub.vote.service.VoteService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,19 +26,27 @@ public class VoteController {
         return fwd != null ? fwd.split(",")[0].trim() : req.getRemoteAddr();
     }
 
-    @PostMapping("/api/votings/{id}/votes")
-    public VoteDto cast(@PathVariable Long id, @RequestBody VoteRequest body, HttpServletRequest http) {
-        return votes.cast(id, body, CurrentUser.get(), ip(http));
+    private User currentUser() {
+        User u = CurrentUser.get();
+        if (u == null) {
+            throw new UnauthorizedActionException("Not authenticated");
+        }
+        return u;
     }
 
-    @DeleteMapping("/api/votings/{id}/votes")
+    @PostMapping({"/api/categories/{id}/votes", "/api/votings/{id}/votes"})
+    public VoteDto cast(@PathVariable Long id, @RequestBody VoteRequest body, HttpServletRequest http) {
+        return votes.cast(id, body, currentUser(), ip(http));
+    }
+
+    @DeleteMapping({"/api/categories/{id}/votes", "/api/votings/{id}/votes"})
     public MessageResponse withdraw(@PathVariable Long id, HttpServletRequest http) {
-        votes.withdraw(id, CurrentUser.get(), ip(http));
-        return new MessageResponse("Vote withdrawn.");
+        votes.withdraw(id, currentUser(), ip(http));
+        return new MessageResponse("Vote withdrawn successfully.");
     }
 
     @GetMapping("/api/my/votes")
     public List<VoteDto> mine() {
-        return votes.mine(CurrentUser.get());
+        return votes.mine(currentUser());
     }
 }

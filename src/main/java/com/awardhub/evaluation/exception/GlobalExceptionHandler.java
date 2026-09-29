@@ -11,8 +11,11 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.springframework.stereotype.Component;
+
 /** Turns exceptions into a consistent JSON shape so the React UI can show one error component. */
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "com.awardhub.evaluation")
+@Component("evaluationExceptionHandler")
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
