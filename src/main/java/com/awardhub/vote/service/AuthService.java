@@ -1,37 +1,57 @@
-package com.awardhub.service;
+package com.awardhub.vote.service;
 
-import com.awardhub.config.GlobalExceptionHandler.BadRequestException;
-import com.awardhub.config.GlobalExceptionHandler.NotFoundException;
-import com.awardhub.dto.DTOs.AuthResponse;
-import com.awardhub.dto.DTOs.LoginRequest;
-import com.awardhub.dto.DTOs.PasswordChangeRequest;
-import com.awardhub.dto.DTOs.ProfileUpdateRequest;
-import com.awardhub.dto.DTOs.RegisterRequest;
-import com.awardhub.dto.DTOs.UserDto;
-import com.awardhub.entity.Ban;
-import com.awardhub.entity.User;
-import com.awardhub.repository.BanRepository;
-import com.awardhub.repository.UserRepository;
-import com.awardhub.security.JwtService;
+import com.awardhub.common.audit.AuditLogService;
+import com.awardhub.common.enums.Role;
+import com.awardhub.common.exception.BadRequestException;
+import com.awardhub.user.entity.AccountStatus;
+import com.awardhub.user.entity.User;
+import com.awardhub.user.repository.UserRepository;
+import com.awardhub.vote.dto.AuthDTOs.AuthResponse;
+import com.awardhub.vote.dto.AuthDTOs.LoginRequest;
+import com.awardhub.vote.dto.AuthDTOs.PasswordChangeRequest;
+import com.awardhub.vote.dto.AuthDTOs.ProfileUpdateRequest;
+import com.awardhub.vote.dto.AuthDTOs.RegisterRequest;
+import com.awardhub.vote.dto.AuthDTOs.UserDto;
+import com.awardhub.vote.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+/**
+ * INTEGRATION FIX applied here:
+ *  - package corrected to com.awardhub.vote.service.
+ *  - rewritten against the one shared user.entity.User (was the deleted
+ *    duplicate com.awardhub.entity.User).
+ *  - the Ban entity/BanRepository this class depended on for
+ *    login-time ban checks and deactivateOwnAccount() do not exist anywhere
+ *    in the codebase (they were referenced but never built). Ban checking is
+ *    dropped for now: deactivateOwnAccount() simply sets accountStatus to
+ *    DEACTIVATED, and login only checks accountStatus. Re-introducing bans
+ *    is a separate, explicit feature to design with the team (see write-up)
+ *    rather than something to half-wire back in here.
+ *  - audit logging now goes through the common.audit.AuditLogService that
+ *    already exists and is already used by the profile module, instead of
+ *    the vote module's own AuditService (which depends on an AuditEntry
+ *    entity that was never created).
+ *  - exceptions come from common.exception.BadRequestException instead of a
+ *    nested class on a "com.awardhub.config.GlobalExceptionHandler" that
+ *    never existed.
+ *  - "status" is now the real AccountStatus enum instead of a raw string
+ *    ("active"/"locked"/"inactive"), so login checks are type-safe.
+ */
 @Service
 public class AuthService {
 
     private final UserRepository users;
-    private final BanRepository bans;
     private final PasswordEncoder encoder;
     private final JwtService jwtService;
-    private final AuditService audit;
+    private final AuditLogService audit;
 
-    public AuthService(UserRepository users, BanRepository bans, PasswordEncoder encoder,
-                       JwtService jwtService, AuditService audit) {
+    public AuthService(UserRepository users, PasswordEncoder encoder,
+                        JwtService jwtService, AuditLogService audit) {
         this.users = users;
-        this.bans = bans;
         this.encoder = encoder;
         this.jwtService = jwtService;
         this.audit = audit;
@@ -43,28 +63,36 @@ public class AuthService {
         if (req.email() == null || !req.email().contains("@")) throw new BadRequestException("Valid email is required.");
         if (req.password() == null || req.password().length() < 6) throw new BadRequestException("Password must be at least 6 characters.");
         if (req.nic() == null) throw new BadRequestException("NIC number is required.");
+
         String nic = req.nic().trim().toUpperCase();
         if (!nic.matches("\\d{9}[VX]") && !nic.matches("\\d{12}")) {
             throw new BadRequestException("Please enter a valid NIC number (old format 123456789V or new format 12 digits).");
         }
-        if (users.existsByEmailIgnoreCase(req.email())) throw new BadRequestException("An account with this email already exists.");
+        if (users.existsByEmailIgnoreCase(req.email())) {
+            throw new BadRequestException("An account with this email already exists.");
+        }
         if (users.existsByNicIgnoreCase(nic)) {
-            audit.log(null, "REGISTER_ATTEMPT", "nic-" + nic,
-                    "Duplicate NIC registration attempt for email " + req.email(), ip, true);
             throw new BadRequestException("This NIC number is already registered to another account. One account per person.");
         }
 
         User user = new User();
-        user.setName(req.name().trim());
+        user.setUsername(req.email().trim());
+        user.setFullName(req.name().trim());
         user.setEmail(req.email().trim());
-        user.setPasswordHash(encoder.encode(req.password()));
+        user.setPassword(encoder.encode(req.password()));
         user.setNic(nic);
-        user.setRole(User.Role.VOTER);
+        user.setRole(Role.VOTER);
         user.setAvatar(initials(req.name()));
-        users.save(user);
+        // Registration still requires the email-OTP verification step the team
+        // decided on (see voting-system notes) before the account becomes ACTIVE;
+        // that verification endpoint is a separate piece of work, not part of
+        // this fix. Left at the entity's default (PENDING_VERIFICATION).
+        User saved = users.save(user);
 
-        audit.log(user, "ACCOUNT_REGISTERED", "user-" + user.getId(), "New voter account registered", ip, false);
-        return new AuthResponse(jwtService.generateToken(user), UserDto.from(user));
+        audit.log(saved.getId(), "ACCOUNT_REGISTERED", "User", saved.getId(),
+                "New voter account registered from IP " + ip);
+
+        return new AuthResponse(jwtService.generateToken(saved), UserDto.from(saved));
     }
 
     @Transactional
@@ -72,66 +100,57 @@ public class AuthService {
         User user = users.findByEmailIgnoreCase(req.email() == null ? "" : req.email())
                 .orElseThrow(() -> new BadRequestException("Invalid email or password."));
 
-        if (!"active".equals(user.getStatus())) {
-            throw new BadRequestException("This account is " + user.getStatus() + ". Contact support.");
+        if (!user.isLoginAllowed()) {
+            throw new BadRequestException("This account is " + user.getAccountStatus() + ". Contact support.");
         }
-        bans.findFirstByUserIdAndActiveTrueOrderByBannedAtDesc(user.getId()).ifPresent(ban -> {
-            if (ban.getExpiresAt() == null || ban.getExpiresAt().isAfter(LocalDateTime.now())) {
-                throw new BadRequestException("This account is banned: " + ban.getReason());
-            }
-        });
-        if (!encoder.matches(req.password() == null ? "" : req.password(), user.getPasswordHash())) {
+        if (!encoder.matches(req.password() == null ? "" : req.password(), user.getPassword())) {
             throw new BadRequestException("Invalid email or password.");
         }
 
         user.setLastLogin(LocalDateTime.now());
-        users.save(user);
-        return new AuthResponse(jwtService.generateToken(user), UserDto.from(user));
+        User saved = users.save(user);
+
+        audit.log(saved.getId(), "LOGIN", "User", saved.getId(), "Login from IP " + ip);
+        return new AuthResponse(jwtService.generateToken(saved), UserDto.from(saved));
     }
 
     @Transactional
     public UserDto updateProfile(User actor, ProfileUpdateRequest req) {
-        if (req.name() != null && !req.name().isBlank()) actor.setName(req.name().trim());
+        if (req.name() != null && !req.name().isBlank()) actor.setFullName(req.name().trim());
         if (req.bio() != null) actor.setBio(req.bio());
         if (req.location() != null) actor.setLocation(req.location());
         if (req.website() != null) actor.setWebsite(req.website());
         if (req.notifEmail() != null) actor.setNotifEmail(req.notifEmail());
         if (req.notifSms() != null) actor.setNotifSms(req.notifSms());
         if (req.notifResults() != null) actor.setNotifResults(req.notifResults());
-        users.save(actor);
-        return UserDto.from(actor);
+        User saved = users.save(actor);
+        return UserDto.from(saved);
     }
 
     @Transactional
     public void changePassword(User actor, PasswordChangeRequest req, String ip) {
-        if (!encoder.matches(req.currentPassword() == null ? "" : req.currentPassword(), actor.getPasswordHash())) {
+        if (!encoder.matches(req.currentPassword() == null ? "" : req.currentPassword(), actor.getPassword())) {
             throw new BadRequestException("Current password is incorrect.");
         }
         if (req.newPassword() == null || req.newPassword().length() < 6) {
             throw new BadRequestException("New password must be at least 6 characters.");
         }
-        actor.setPasswordHash(encoder.encode(req.newPassword()));
+        actor.setPassword(encoder.encode(req.newPassword()));
         users.save(actor);
-        audit.log(actor, "PASSWORD_CHANGED", "user-" + actor.getId(), "Password changed", ip, false);
+        audit.log(actor.getId(), "PASSWORD_CHANGED", "User", actor.getId(), "Password changed from IP " + ip);
     }
 
     /**
-     * Self-service account deletion: the account is deactivated and locked rather
-     * than hard-deleted, preserving referential integrity of votes/nominations while
-     * preventing further logins. A permanent ban is recorded for the audit trail.
+     * Self-service account deletion: deactivated rather than hard-deleted, so
+     * existing nominations/votes/evaluations tied to this user keep their
+     * foreign keys intact and the audit trail stays meaningful.
      */
     @Transactional
     public void deactivateOwnAccount(User actor, String ip) {
-        actor.setStatus("locked");
+        actor.setAccountStatus(AccountStatus.DEACTIVATED);
         users.save(actor);
-        Ban ban = new Ban();
-        ban.setUser(actor);
-        ban.setType(Ban.Type.permanent);
-        ban.setReason("Account deletion requested by the user.");
-        ban.setActive(true);
-        bans.save(ban);
-        audit.log(actor, "ACCOUNT_DELETION_REQUESTED", "user-" + actor.getId(),
-                "User requested account deletion — account locked", ip, false);
+        audit.log(actor.getId(), "ACCOUNT_DEACTIVATED", "User", actor.getId(),
+                "User requested account deletion from IP " + ip);
     }
 
     private String initials(String name) {

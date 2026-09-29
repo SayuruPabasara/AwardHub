@@ -1,19 +1,30 @@
-package com.awardhub.controller;
+package com.awardhub.vote.controller;
 
-import com.awardhub.dto.DTOs.AuthResponse;
-import com.awardhub.dto.DTOs.LoginRequest;
-import com.awardhub.dto.DTOs.MessageResponse;
-import com.awardhub.dto.DTOs.PasswordChangeRequest;
-import com.awardhub.dto.DTOs.ProfileUpdateRequest;
-import com.awardhub.dto.DTOs.RegisterRequest;
-import com.awardhub.dto.DTOs.UserDto;
-import com.awardhub.entity.User;
-import com.awardhub.security.CurrentUser;
-import com.awardhub.service.AuthService;
+import com.awardhub.common.exception.UnauthorizedActionException;
+import com.awardhub.user.entity.User;
+import com.awardhub.vote.dto.AuthDTOs.AuthResponse;
+import com.awardhub.vote.dto.AuthDTOs.LoginRequest;
+import com.awardhub.vote.dto.AuthDTOs.MessageResponse;
+import com.awardhub.vote.dto.AuthDTOs.PasswordChangeRequest;
+import com.awardhub.vote.dto.AuthDTOs.ProfileUpdateRequest;
+import com.awardhub.vote.dto.AuthDTOs.RegisterRequest;
+import com.awardhub.vote.dto.AuthDTOs.UserDto;
+import com.awardhub.vote.security.CurrentUser;
+import com.awardhub.vote.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * INTEGRATION FIX applied here:
+ *  - package corrected to com.awardhub.vote.controller.
+ *  - rewritten against com.awardhub.user.entity.User and the trimmed
+ *    AuthDTOs, dropping the reference to a
+ *    "com.awardhub.config.GlobalExceptionHandler.ForbiddenException" nested
+ *    class that never existed — uses the real
+ *    common.exception.UnauthorizedActionException instead, which
+ *    GlobalExceptionHandler already maps to 403.
+ */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -63,7 +74,7 @@ public class AuthController {
 
     private User currentUser() {
         User u = CurrentUser.get();
-        if (u == null) throw new com.awardhub.config.GlobalExceptionHandler.ForbiddenException("Not authenticated.");
+        if (u == null) throw new UnauthorizedActionException("Not authenticated.");
         return u;
     }
 }

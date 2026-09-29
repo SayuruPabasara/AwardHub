@@ -36,3 +36,13 @@ logging.level.com.awardhub=DEBUG
 spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=10MB
 app.upload.nominee-documents-dir=uploads/nominee-documents
+
+# =============================
+# JWT (vote.security.JwtService / JwtAuthFilter)
+# INTEGRATION FIX: these two properties did not exist anywhere, but
+# JwtService requires them via @Value with no default — the app would fail
+# to start without them. Generate a real secret per environment; never
+# commit the real value (this file is the .example template).
+# =============================
+app.jwt.secret=CHANGE_ME_to_a_long_random_secret_at_least_32_bytes
+app.jwt.expiration-ms=86400000

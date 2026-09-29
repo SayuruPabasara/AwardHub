@@ -1,6 +1,6 @@
-package com.awardhub.security;
+package com.awardhub.vote.security;
 
-import com.awardhub.entity.User;
+import com.awardhub.user.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -12,6 +12,16 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+/**
+ * INTEGRATION FIX applied here:
+ *  - package corrected from the file's previous (wrong) `com.awardhub.security`
+ *    to `com.awardhub.vote.security`, matching its actual folder.
+ *  - now issues/reads tokens for the one shared `user.entity.User`, not the
+ *    deleted duplicate `com.awardhub.entity.User`.
+ *  - pom.xml needs the jjwt dependencies added for this class to compile —
+ *    see the note in the integration write-up (io.jsonwebtoken:jjwt-api,
+ *    jjwt-impl, jjwt-jackson).
+ */
 @Service
 public class JwtService {
 
@@ -19,7 +29,7 @@ public class JwtService {
     private final long expirationMs;
 
     public JwtService(@Value("${app.jwt.secret}") String secret,
-                      @Value("${app.jwt.expiration-ms}") long expirationMs) {
+                       @Value("${app.jwt.expiration-ms}") long expirationMs) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
     }
@@ -29,8 +39,8 @@ public class JwtService {
         return Jwts.builder()
                 .subject(user.getEmail())
                 .claim("uid", user.getId())
-                .claim("role", user.getRole().name())
-                .claim("name", user.getName())
+                .claim("role", user.getRole() != null ? user.getRole().name() : null)
+                .claim("name", user.getFullName())
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + expirationMs))
                 .signWith(key)
