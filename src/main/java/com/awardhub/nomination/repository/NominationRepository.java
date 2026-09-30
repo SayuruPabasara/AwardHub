@@ -14,4 +14,11 @@ public interface NominationRepository extends JpaRepository<Nomination, Long> {
     List<Nomination> findByCategoryIdAndStatus(Long categoryId, NominationStatus status);
 
     Optional<Nomination> findByIdAndCategoryId(Long id, Long categoryId);
-}
+
+    // Added for the nomination workflow rebuild:
+    List<Nomination> findByNomineeId(Long nomineeId);
+
+    List<Nomination> findByCategoryId(Long categoryId);
+
+    List<Nomination> findByCategoryIdAndStatusIn(Long categoryId, List<NominationStatus> statuses);
+}

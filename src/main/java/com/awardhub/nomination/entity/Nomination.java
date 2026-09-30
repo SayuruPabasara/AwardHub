@@ -2,11 +2,16 @@ package com.awardhub.nomination.entity;
 
 import com.awardhub.common.enums.NominationStatus;
 import jakarta.persistence.*;
-import lombok.Data;
 
 import java.time.LocalDateTime;
 
-@Data
+/**
+ * INTEGRATION FIX (nomination workflow rebuild):
+ * Added reviewedBy/reviewedAt so an organizer decision (approve/reject) leaves
+ * a trace of who acted and when, matching the audit expectations the rest of
+ * the codebase (category, evaluation) already has. Everything else is
+ * unchanged from the original entity.
+ */
 @Entity
 @Table(name = "nominations")
 public class Nomination {
@@ -15,138 +20,88 @@ public class Nomination {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Selected award category
     @Column(name = "category_id", nullable = false)
     private Long categoryId;
 
-    // User who submitted the nomination
     @Column(name = "nominee_id", nullable = false)
     private Long nomineeId;
 
-    // Basic nomination information
     @Column(nullable = false, length = 150)
     private String title;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    // Supporting document path or reference
     @Column(name = "supporting_document", length = 500)
     private String supportingDocument;
 
-    // Current nomination status
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private NominationStatus status = NominationStatus.DRAFT;
 
-    // Required when an organizer rejects a nomination
     @Column(name = "rejection_reason", columnDefinition = "TEXT")
     private String rejectionReason;
 
-    // Record creation and update times
+    @Column(name = "reviewed_by")
+    private Long reviewedBy;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    // Set default values before saving
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
         createdAt = now;
         updatedAt = now;
-
         if (status == null) {
             status = NominationStatus.DRAFT;
         }
     }
 
-    // Update timestamp whenever the record changes
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
 
-    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public Long getId() {
-        return id;
-    }
+    public Long getCategoryId() { return categoryId; }
+    public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Long getNomineeId() { return nomineeId; }
+    public void setNomineeId(Long nomineeId) { this.nomineeId = nomineeId; }
 
-    public Long getCategoryId() {
-        return categoryId;
-    }
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
 
-    public void setCategoryId(Long categoryId) {
-        this.categoryId = categoryId;
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public Long getNomineeId() {
-        return nomineeId;
-    }
+    public String getSupportingDocument() { return supportingDocument; }
+    public void setSupportingDocument(String supportingDocument) { this.supportingDocument = supportingDocument; }
 
-    public void setNomineeId(Long nomineeId) {
-        this.nomineeId = nomineeId;
-    }
+    public NominationStatus getStatus() { return status; }
+    public void setStatus(NominationStatus status) { this.status = status; }
 
-    public String getTitle() {
-        return title;
-    }
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
+    public Long getReviewedBy() { return reviewedBy; }
+    public void setReviewedBy(Long reviewedBy) { this.reviewedBy = reviewedBy; }
 
-    public String getDescription() {
-        return description;
-    }
+    public LocalDateTime getReviewedAt() { return reviewedAt; }
+    public void setReviewedAt(LocalDateTime reviewedAt) { this.reviewedAt = reviewedAt; }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public String getSupportingDocument() {
-        return supportingDocument;
-    }
-
-    public void setSupportingDocument(String supportingDocument) {
-        this.supportingDocument = supportingDocument;
-    }
-
-    public NominationStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(NominationStatus status) {
-        this.status = status;
-    }
-
-    public String getRejectionReason() {
-        return rejectionReason;
-    }
-
-    public void setRejectionReason(String rejectionReason) {
-        this.rejectionReason = rejectionReason;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }
