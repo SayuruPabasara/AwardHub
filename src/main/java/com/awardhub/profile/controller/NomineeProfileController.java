@@ -1,6 +1,6 @@
 package com.awardhub.profile.controller;
 
-import com.awardhub.common.dto.ApiResponse;
+import com.awardhub.common.response.ApiResponse;
 import com.awardhub.profile.dto.NomineeProfileResponse;
 import com.awardhub.profile.dto.UpdateNomineeProfileRequest;
 import com.awardhub.profile.service.NomineeProfileService;
