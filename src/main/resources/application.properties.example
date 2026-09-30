@@ -9,20 +9,27 @@ server.port=8080
 spring.application.name=awardhub
 
 # =============================
-# MySQL Database
+# Database engine
+# INTEGRATION FIX: the codebase has no native/raw SQL anywhere (checked —
+# only JPQL via @Query, which Hibernate translates per dialect), so either
+# engine works with zero code changes. MSSQL is the university-mandated,
+# "real" target and stays the default so a fresh checkout points at it
+# without anyone needing to remember to set anything. To run against MySQL
+# locally instead (e.g. while Docker/MSSQL is unavailable), override this
+# one line — nothing else needs to change:
+#   ./mvnw spring-boot:run -Dspring-boot.run.arguments=--spring.profiles.active=mysql
+#   or set the SPRING_PROFILES_ACTIVE=mysql environment variable
+# See application-mssql.properties.example / application-mysql.properties.example
+# for the engine-specific settings this activates.
 # =============================
-spring.datasource.url=jdbc:mysql://localhost:3306/awardhub?createDatabaseIfNotExist=true
-spring.datasource.username=root
-spring.datasource.password=Nimbus@2001
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.profiles.active=mssql
 
 # =============================
-# JPA / Hibernate
+# JPA / Hibernate (shared across both engines)
 # =============================
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
 
 # =============================
 # Logging
@@ -39,10 +46,8 @@ app.upload.nominee-documents-dir=uploads/nominee-documents
 
 # =============================
 # JWT (vote.security.JwtService / JwtAuthFilter)
-# INTEGRATION FIX: these two properties did not exist anywhere, but
-# JwtService requires them via @Value with no default — the app would fail
-# to start without them. Generate a real secret per environment; never
-# commit the real value (this file is the .example template).
+# Generate a real secret per environment; never commit the real value
+# (this file is the .example template).
 # =============================
 app.jwt.secret=CHANGE_ME_to_a_long_random_secret_at_least_32_bytes
 app.jwt.expiration-ms=86400000
