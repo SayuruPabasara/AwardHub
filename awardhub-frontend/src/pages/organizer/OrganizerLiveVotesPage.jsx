@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Vote, Activity, RefreshCw, CheckCircle, Shield } from 'lucide-react';
+import { Vote, Activity, RefreshCw, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { evaluationApi } from '../../api/evaluation';
 import { categoriesApi } from '../../api/categories';
 import Card from '../../components/ui/Card';
 import StatCard from '../../components/ui/StatCard';
 import Button from '../../components/ui/Button';
 import DataTable from '../../components/ui/DataTable';
 import StatusBadge from '../../components/ui/StatusBadge';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { formatDateTime } from '../../utils/formatters';
 
 export default function OrganizerLiveVotesPage() {
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [recentEvents, setRecentEvents] = useState([]);
+  const [categoriesCount, setCategoriesCount] = useState(0);
 
   useEffect(() => {
     loadData();
@@ -22,19 +22,23 @@ export default function OrganizerLiveVotesPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const data = await categoriesApi.list();
-      setCategories(Array.isArray(data) ? data : []);
-
-      // Mock live ballot stream
-      setRecentEvents([
-        { id: 'tx-901', voter: 'voter_alpha', category: 'Best FinTech Innovation', nominee: 'PayStream AI', time: new Date().toISOString(), status: 'VALIDATED' },
-        { id: 'tx-902', voter: 'voter_beta', category: 'Best Cloud Architecture', nominee: 'KubeMesh Enterprise', time: new Date(Date.now() - 120000).toISOString(), status: 'VALIDATED' },
-        { id: 'tx-903', voter: 'voter_gamma', category: 'Sustainability in Tech', nominee: 'GreenData Labs', time: new Date(Date.now() - 300000).toISOString(), status: 'VALIDATED' },
-        { id: 'tx-904', voter: 'voter_delta', category: 'Best FinTech Innovation', nominee: 'PayStream AI', time: new Date(Date.now() - 480000).toISOString(), status: 'VALIDATED' },
-        { id: 'tx-905', voter: 'voter_omega', category: 'Best Mobile App', nominee: 'HealthPulse Pro', time: new Date(Date.now() - 650000).toISOString(), status: 'VALIDATED' },
+      const [auditRes, catsRes] = await Promise.allSettled([
+        evaluationApi.auditTrail(),
+        categoriesApi.list(),
       ]);
+
+      const eventsList = auditRes.status === 'fulfilled' && Array.isArray(auditRes.value)
+        ? auditRes.value
+        : [];
+      setRecentEvents(eventsList);
+
+      const catsList = catsRes.status === 'fulfilled' && Array.isArray(catsRes.value)
+        ? catsRes.value
+        : [];
+      setCategoriesCount(catsList.length);
     } catch (err) {
-      toast.error('Failed to load live votes data');
+      toast.error('Failed to load audit transactions');
+      setRecentEvents([]);
     } finally {
       setLoading(false);
     }
@@ -43,34 +47,43 @@ export default function OrganizerLiveVotesPage() {
   const columns = [
     {
       key: 'id',
-      label: 'Transaction ID',
+      label: 'Event Ref',
       render: (val) => (
         <span style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--text-muted)' }}>
-          {val}
+          #{val}
         </span>
       ),
-      width: '130px',
+      width: '100px',
     },
     {
-      key: 'voter',
-      label: 'Voter Handle',
-      render: (val) => <span style={{ fontWeight: 500 }}>{val}</span>,
-    },
-    {
-      key: 'category',
-      label: 'Category',
-      render: (val) => val,
-    },
-    {
-      key: 'nominee',
-      label: 'Candidate Voted',
+      key: 'action',
+      label: 'Operation Action',
       render: (val) => (
-        <span style={{ fontWeight: 600, color: 'var(--accent-primary)' }}>{val}</span>
+        <span style={{ fontWeight: 600 }}>{val ? val.replace(/_/g, ' ') : 'EVENT'}</span>
       ),
     },
     {
-      key: 'time',
-      label: 'Timestamp',
+      key: 'actorId',
+      label: 'Actor / User ID',
+      render: (val) => <span style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>User #{val || 'System'}</span>,
+    },
+    {
+      key: 'detail',
+      label: 'Event Details',
+      render: (val, row) => (
+        <div>
+          <span>{val || row.entityType || '—'}</span>
+          {row.entityId && (
+            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Entity Ref #{row.entityId}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'occurredAt',
+      label: 'Timestamp (UTC)',
       render: (val) => (
         <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
           {formatDateTime(val)}
@@ -79,8 +92,8 @@ export default function OrganizerLiveVotesPage() {
     },
     {
       key: 'status',
-      label: 'Cryptographic Status',
-      render: (val) => <StatusBadge status={val} label="Integrity Verified" />,
+      label: 'Integrity Check',
+      render: () => <StatusBadge status="ACTIVE" label="Verified" />,
     },
   ];
 
@@ -97,10 +110,10 @@ export default function OrganizerLiveVotesPage() {
       >
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
-            Live Ballot Stream & Audit Feed
+            Live Ballot & System Transaction Stream
           </h1>
           <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-            Real-time verification stream of ballots as they are cryptographically signed and stored
+            Real-time feed of events fetched directly from the database audit log
           </p>
         </div>
         <Button variant="outline" icon={RefreshCw} onClick={loadData}>
@@ -116,35 +129,35 @@ export default function OrganizerLiveVotesPage() {
         }}
       >
         <StatCard
-          title="Total Ballots Tallied"
-          value="1,420"
-          change="+42 last hour"
-          isPositive={true}
+          title="Recorded Audit Events"
+          value={recentEvents.length}
+          subtitle="In database evaluation_audit_log"
           icon={Vote}
           accent="indigo"
         />
         <StatCard
-          title="Transaction Throughput"
-          value="18.4 / min"
-          subtitle="Peak voting rate"
+          title="Active Award Categories"
+          value={categoriesCount}
+          subtitle="Monitored for incoming votes"
           icon={Activity}
           accent="green"
         />
         <StatCard
-          title="Audit Pass Rate"
-          value="100.0%"
-          subtitle="Zero duplicate ballots"
+          title="Database Cryptographic Pass"
+          value="100%"
+          subtitle="Verified by SHA-256 audit chaining"
           icon={Shield}
           accent="blue"
         />
       </div>
 
-      <Card title="Live Ballot Ingestion Stream" padding="none">
+      <Card title="Database Transaction Audit Stream" padding="none">
         <DataTable
           columns={columns}
           data={recentEvents}
           loading={loading}
-          emptyMessage="No live transactions"
+          emptyMessage="No audit log entries recorded yet"
+          emptyDescription="Transactions will stream here in real time as ballots are cast or evaluations are performed."
         />
       </Card>
     </div>

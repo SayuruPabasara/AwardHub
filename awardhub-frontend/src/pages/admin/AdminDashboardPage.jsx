@@ -2,15 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users,
-  ShieldAlert,
   Server,
   Activity,
   Key,
   Database,
   ArrowRight,
-  CheckCircle,
 } from 'lucide-react';
 import { adminApi } from '../../api/admin';
+import { categoriesApi } from '../../api/categories';
 import Card from '../../components/ui/Card';
 import StatCard from '../../components/ui/StatCard';
 import Button from '../../components/ui/Button';
@@ -19,6 +18,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 export default function AdminDashboardPage() {
   const navigate = useNavigate();
   const [usersCount, setUsersCount] = useState(0);
+  const [categoriesCount, setCategoriesCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,14 +28,30 @@ export default function AdminDashboardPage() {
   const loadStats = async () => {
     setLoading(true);
     try {
-      const data = await adminApi.listUsers();
-      setUsersCount(Array.isArray(data) ? data.length : 12);
+      const [usersRes, catsRes] = await Promise.allSettled([
+        adminApi.listUsers(),
+        categoriesApi.list(),
+      ]);
+
+      const usersList = usersRes.status === 'fulfilled' && Array.isArray(usersRes.value)
+        ? usersRes.value
+        : [];
+      setUsersCount(usersList.length);
+
+      const catsList = catsRes.status === 'fulfilled' && Array.isArray(catsRes.value)
+        ? catsRes.value
+        : [];
+      setCategoriesCount(catsList.length);
     } catch (err) {
-      setUsersCount(12);
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
+
+  if (loading) {
+    return <LoadingSpinner message="Querying cluster and user tables from MS SQL..." />;
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -69,32 +85,32 @@ export default function AdminDashboardPage() {
         }}
       >
         <StatCard
-          title="Total User Accounts"
+          title="Registered Accounts"
           value={usersCount}
-          subtitle="Across 5 system roles"
+          subtitle="Users in database"
           icon={Users}
           accent="indigo"
         />
         <StatCard
-          title="Backend API Status"
-          value="Healthy"
-          subtitle="Spring Boot :8080 online"
+          title="Active Award Categories"
+          value={categoriesCount}
+          subtitle="In categories table"
+          icon={Database}
+          accent="purple"
+        />
+        <StatCard
+          title="Backend API Engine"
+          value="Online"
+          subtitle="Spring Boot :8080 active"
           icon={Server}
           accent="green"
         />
         <StatCard
-          title="Database Latency"
-          value="4.2 ms"
-          subtitle="MySQL InnoDB cluster"
-          icon={Database}
+          title="Database Engine"
+          value="MS SQL"
+          subtitle="Port 1433 (awardhub2)"
+          icon={Activity}
           accent="blue"
-        />
-        <StatCard
-          title="Security Incidents"
-          value="0"
-          subtitle="Zero anomalies detected"
-          icon={ShieldAlert}
-          accent="purple"
         />
       </div>
 

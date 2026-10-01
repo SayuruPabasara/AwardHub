@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ClipboardCheck, Sliders, CheckCircle, Clock, Eye, AlertCircle } from 'lucide-react';
+import { ClipboardCheck, Sliders, CheckCircle, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { evaluationApi } from '../../api/evaluation';
 import { useAuth } from '../../hooks/useAuth';
@@ -9,7 +9,6 @@ import StatCard from '../../components/ui/StatCard';
 import Button from '../../components/ui/Button';
 import DataTable from '../../components/ui/DataTable';
 import StatusBadge from '../../components/ui/StatusBadge';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
 export default function JudgeWorklistPage() {
   const navigate = useNavigate();
@@ -24,58 +23,57 @@ export default function JudgeWorklistPage() {
   const loadWorklist = async () => {
     setLoading(true);
     try {
-      const judgeId = user?.id || 1;
+      const judgeId = user?.id;
+      if (!judgeId) {
+        setWorklist([]);
+        return;
+      }
       const data = await evaluationApi.worklist(judgeId);
       setWorklist(Array.isArray(data) ? data : []);
     } catch (err) {
-      // Mock worklist if judge assignment endpoints return empty
-      setWorklist([
-        { id: 101, nominationId: 1, title: 'AI-Powered Cardiac Detection System', category: 'HealthTech Excellence', candidateName: 'CardioVision AI', status: 'PENDING', currentScore: null },
-        { id: 102, nominationId: 2, title: 'Zero-Carbon Logistics Grid', category: 'Sustainability in Tech', candidateName: 'EcoFreight Labs', status: 'SCORED', currentScore: 88.5 },
-        { id: 103, nominationId: 3, title: 'Decentralized Micro-Payment Rails', category: 'Best FinTech Innovation', candidateName: 'SatoshiMesh', status: 'PENDING', currentScore: null },
-        { id: 104, nominationId: 4, title: 'Automated Code Vulnerability Shield', category: 'Cybersecurity Milestone', candidateName: 'SecureStack Corp', status: 'SCORED', currentScore: 94.0 },
-      ]);
+      console.error('Failed to load judge worklist:', err);
+      setWorklist([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const completedCount = worklist.filter((w) => w.status === 'SCORED' || w.currentScore != null).length;
+  const completedCount = worklist.filter((w) => w.status === 'COMPLETED' || w.totalScore != null).length;
   const pendingCount = worklist.length - completedCount;
 
   const columns = [
     {
-      key: 'title',
-      label: 'Nomination Dossier',
+      key: 'displayName',
+      label: 'Nomination Candidate',
       render: (val, row) => (
         <div>
-          <span style={{ fontWeight: 600 }}>{val}</span>
+          <span style={{ fontWeight: 600 }}>{val || `Candidate #${row.nominationId}`}</span>
           <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Candidate: {row.candidateName}
+            Dossier Ref #{row.nominationId}
           </span>
         </div>
       ),
     },
     {
-      key: 'category',
+      key: 'categoryName',
       label: 'Award Category',
-      render: (val) => val,
+      render: (val, row) => val || `Category #${row.categoryId}`,
     },
     {
       key: 'status',
       label: 'Evaluation Status',
       render: (val, row) => (
         <StatusBadge
-          status={row.currentScore != null ? 'COMPLETED' : 'PENDING'}
-          label={row.currentScore != null ? 'Graded' : 'Awaiting Score'}
+          status={val || (row.totalScore != null ? 'COMPLETED' : 'PENDING')}
+          label={val || (row.totalScore != null ? 'Graded' : 'Awaiting Score')}
         />
       ),
     },
     {
-      key: 'currentScore',
+      key: 'totalScore',
       label: 'Score Awarded',
       render: (val) => (
-        <span style={{ fontWeight: 700, color: val ? 'var(--accent-primary)' : 'var(--text-muted)' }}>
+        <span style={{ fontWeight: 700, color: val != null ? 'var(--accent-primary)' : 'var(--text-muted)' }}>
           {val != null ? `${val} / 100` : '—'}
         </span>
       ),
@@ -87,13 +85,13 @@ export default function JudgeWorklistPage() {
       render: (_, row) => (
         <Button
           size="sm"
-          variant={row.currentScore != null ? 'outline' : 'primary'}
+          variant={row.totalScore != null ? 'outline' : 'primary'}
           icon={Sliders}
           onClick={() =>
-            navigate(`/judge/scoring?nominationId=${row.nominationId || row.id}`)
+            navigate(`/judge/scoring?nominationId=${row.nominationId}&categoryId=${row.categoryId}`)
           }
         >
-          {row.currentScore != null ? 'Edit Score' : 'Score Now'}
+          {row.totalScore != null ? 'Edit Score' : 'Score Now'}
         </Button>
       ),
     },
@@ -127,7 +125,7 @@ export default function JudgeWorklistPage() {
         <StatCard
           title="Evaluations Completed"
           value={completedCount}
-          subtitle={`${Math.round((completedCount / (worklist.length || 1)) * 100)}% progress`}
+          subtitle={worklist.length > 0 ? `${Math.round((completedCount / worklist.length) * 100)}% progress` : '0% progress'}
           icon={CheckCircle}
           accent="green"
         />
@@ -145,8 +143,8 @@ export default function JudgeWorklistPage() {
           columns={columns}
           data={worklist}
           loading={loading}
-          emptyMessage="No assigned dossiers"
-          emptyDescription="You have no nominations currently allocated to your worklist."
+          emptyMessage="No assigned dossiers found"
+          emptyDescription="You have no nominations currently allocated to your worklist in the database."
         />
       </Card>
     </div>

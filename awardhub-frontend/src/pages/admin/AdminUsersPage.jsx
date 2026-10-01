@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Search, Filter, Shield, Key } from 'lucide-react';
+import { UserPlus, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { adminApi } from '../../api/admin';
 import Card from '../../components/ui/Card';
@@ -34,13 +34,8 @@ export default function AdminUsersPage() {
       const data = await adminApi.listUsers();
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
-      setUsers([
-        { id: 1, username: 'admin', email: 'admin@awardhub.com', role: 'ADMIN', accountStatus: 'ACTIVE' },
-        { id: 2, username: 'organizer_lead', email: 'organizer@awardhub.com', role: 'ORGANIZER', accountStatus: 'ACTIVE' },
-        { id: 3, username: 'dr_miller', email: 'miller@eval.org', role: 'JUDGE', accountStatus: 'ACTIVE' },
-        { id: 4, username: 'nominee_alex', email: 'alex@startup.io', role: 'NOMINEE', accountStatus: 'ACTIVE' },
-        { id: 5, username: 'voter_sarah', email: 'sarah@public.org', role: 'VOTER', accountStatus: 'ACTIVE' },
-      ]);
+      console.error(err);
+      setUsers([]);
     } finally {
       setLoading(false);
     }
@@ -51,7 +46,7 @@ export default function AdminUsersPage() {
     setSaving(true);
     try {
       await adminApi.createUser(createUserForm);
-      toast.success('User account created successfully');
+      toast.success('User account created in database successfully');
       setModalOpen(false);
       setCreateUserForm({ username: '', email: '', password: '', role: 'VOTER' });
       loadUsers();
@@ -116,7 +111,7 @@ export default function AdminUsersPage() {
             User Accounts Directory
           </h1>
           <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-            Manage identity profiles, role privileges, and account status across the system
+            Live accounts queried from the MS SQL users table
           </p>
         </div>
         <Button variant="primary" icon={UserPlus} onClick={() => setModalOpen(true)}>
@@ -169,7 +164,8 @@ export default function AdminUsersPage() {
           columns={columns}
           data={filtered}
           loading={loading}
-          emptyMessage="No users found"
+          emptyMessage="No users found in database"
+          emptyDescription="User accounts registered in the database will appear here."
         />
       </Card>
 
@@ -177,7 +173,7 @@ export default function AdminUsersPage() {
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title="Provision New User Account"
-        subtitle="Create an internal account with specific role permissions"
+        subtitle="Create an account directly in the MS SQL users table"
         footer={
           <>
             <Button variant="secondary" onClick={() => setModalOpen(false)}>

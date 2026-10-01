@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Award, BarChart2, Medal } from 'lucide-react';
+import { Trophy, BarChart2, Medal } from 'lucide-react';
 import { categoriesApi } from '../../api/categories';
 import { evaluationApi } from '../../api/evaluation';
 import Card from '../../components/ui/Card';
-import Button from '../../components/ui/Button';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
 import VoteDistributionChart from '../../components/charts/VoteDistributionChart';
@@ -44,8 +43,9 @@ export default function VoterResultsPage() {
   const loadResults = async (catId) => {
     setLoadingResults(true);
     try {
-      const data = await evaluationApi.publicResults(catId);
-      setResults(Array.isArray(data) ? data : []);
+      const data = await evaluationApi.publishedResults(catId).catch(() => evaluationApi.latestResults(catId));
+      const list = data?.entries || (Array.isArray(data) ? data : []);
+      setResults(list);
     } catch (err) {
       setResults([]);
     } finally {
@@ -56,8 +56,8 @@ export default function VoterResultsPage() {
   const activeCategory = categories.find((c) => c.id === selectedCatId);
 
   const chartData = results.map((r) => ({
-    name: r.nomineeName || r.title || `Candidate #${r.nominationId}`,
-    votes: r.voteCount || r.totalScore || 0,
+    name: r.nomineeName || `Candidate #${r.nominationId}`,
+    votes: r.voteCount !== undefined ? Number(r.voteCount) : (Number(r.finalScore) || 0),
   }));
 
   return (
@@ -67,17 +67,17 @@ export default function VoterResultsPage() {
           Public Award Leaderboards
         </h1>
         <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-          Explore real-time voting counts, finalist rankings, and official award winners
+          Real-time tallies and official winner rankings computed from the database
         </p>
       </div>
 
       {loading ? (
-        <LoadingSpinner message="Loading results..." />
+        <LoadingSpinner message="Querying award categories from database..." />
       ) : categories.length === 0 ? (
         <EmptyState
           icon={Trophy}
-          title="No Published Results"
-          description="Official award results have not yet been published for public view."
+          title="No Categories Configured"
+          description="There are currently no active award categories in the database."
         />
       ) : (
         <>
@@ -115,20 +115,20 @@ export default function VoterResultsPage() {
           </div>
 
           {loadingResults ? (
-            <LoadingSpinner message="Calculating rankings and vote counts..." />
+            <LoadingSpinner message="Calculating rankings and vote counts from database..." />
           ) : results.length === 0 ? (
             <Card>
               <EmptyState
                 icon={BarChart2}
-                title="Tally in Progress"
-                description={`Votes are currently being verified or no ballots have been tallied yet for ${
+                title="Tally In Progress"
+                description={`No official results or vote tallies recorded in the database yet for ${
                   activeCategory?.name || 'this category'
                 }.`}
               />
             </Card>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              {/* Podium / Top 3 display if available */}
+              {/* Podium / Top 3 display */}
               <div
                 style={{
                   display: 'grid',
@@ -174,12 +174,12 @@ export default function VoterResultsPage() {
                             {rankLabels[idx]}
                           </span>
                           <h3 style={{ fontSize: '1.15rem', fontWeight: 600, margin: '0.15rem 0' }}>
-                            {item.nomineeName || item.title || `Candidate #${item.nominationId}`}
+                            {item.nomineeName || `Candidate #${item.nominationId}`}
                           </h3>
                           <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                             {item.voteCount !== undefined
-                              ? `${item.voteCount} Verified Votes`
-                              : `Score: ${item.totalScore || 0}`}
+                              ? `${item.voteCount} Verified Ballots`
+                              : `Final Score: ${item.finalScore != null ? Number(item.finalScore).toFixed(2) : 0}`}
                           </span>
                         </div>
                       </div>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, CheckCircle, XCircle, Search, Eye, Filter } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, Filter } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { categoriesApi } from '../../api/categories';
 import { nominationsApi } from '../../api/nominations';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
@@ -8,11 +9,12 @@ import DataTable from '../../components/ui/DataTable';
 import StatusBadge from '../../components/ui/StatusBadge';
 import Modal from '../../components/ui/Modal';
 import SearchBar from '../../components/ui/SearchBar';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { formatDate } from '../../utils/formatters';
 
 export default function OrganizerNominationsPage() {
   const [nominations, setNominations] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -26,10 +28,32 @@ export default function OrganizerNominationsPage() {
   const loadNominations = async () => {
     setLoading(true);
     try {
-      const data = await nominationsApi.mine(); // will fetch all or user scope
-      setNominations(Array.isArray(data) ? data : []);
+      const cats = await categoriesApi.list();
+      const catList = Array.isArray(cats) ? cats : [];
+      setCategories(catList);
+
+      if (catList.length > 0) {
+        const nomPromises = catList.map((c) =>
+          nominationsApi.forCategory(c.id).catch(() => [])
+        );
+        const results = await Promise.allSettled(nomPromises);
+        let allNoms = [];
+        results.forEach((r, idx) => {
+          if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+            const mapped = r.value.map((nom) => ({
+              ...nom,
+              categoryName: catList[idx]?.name || `Category #${nom.categoryId}`,
+            }));
+            allNoms = [...allNoms, ...mapped];
+          }
+        });
+        setNominations(allNoms);
+      } else {
+        setNominations([]);
+      }
     } catch (err) {
-      toast.error('Failed to load nominations');
+      console.error(err);
+      setNominations([]);
     } finally {
       setLoading(false);
     }
@@ -38,7 +62,13 @@ export default function OrganizerNominationsPage() {
   const handleUpdateStatus = async (nomId, newStatus) => {
     setUpdating(true);
     try {
-      await nominationsApi.update(nomId, { status: newStatus });
+      if (newStatus === 'APPROVED') {
+        await nominationsApi.approve(nomId);
+      } else if (newStatus === 'REJECTED') {
+        await nominationsApi.reject(nomId, 'Rejected during review');
+      } else {
+        await nominationsApi.update(nomId, { status: newStatus });
+      }
       toast.success(`Nomination status changed to ${newStatus}`);
       setSelectedNom(null);
       loadNominations();
@@ -50,12 +80,12 @@ export default function OrganizerNominationsPage() {
   };
 
   const filtered = nominations.filter((nom) => {
-    const matchesSearch =
-      (nom.title || '').toLowerCase().includes(search.toLowerCase()) ||
-      (nom.nomineeName || '').toLowerCase().includes(search.toLowerCase()) ||
-      (nom.organization || '').toLowerCase().includes(search.toLowerCase());
+    const titleMatch = (nom.title || '').toLowerCase().includes(search.toLowerCase());
+    const descMatch = (nom.description || '').toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = titleMatch || descMatch || String(nom.nomineeId).includes(search);
     const matchesStatus = statusFilter === 'ALL' || nom.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesCategory = selectedCategoryFilter === 'ALL' || String(nom.categoryId) === selectedCategoryFilter;
+    return matchesSearch && matchesStatus && matchesCategory;
   });
 
   const columns = [
@@ -66,20 +96,20 @@ export default function OrganizerNominationsPage() {
         <div>
           <span style={{ fontWeight: 600 }}>{val || 'Project Title'}</span>
           <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Candidate: {row.nomineeName || 'Unnamed'} {row.organization ? `• ${row.organization}` : ''}
+            Candidate ID: #{row.nomineeId} • Ref #{row.id}
           </span>
         </div>
       ),
     },
     {
       key: 'categoryName',
-      label: 'Category',
+      label: 'Award Category',
       render: (val, row) => val || `Category #${row.categoryId}`,
     },
     {
-      key: 'submissionDate',
+      key: 'createdAt',
       label: 'Submitted On',
-      render: (val, row) => formatDate(val || row.createdAt),
+      render: (val) => formatDate(val),
     },
     {
       key: 'status',
@@ -126,30 +156,55 @@ export default function OrganizerNominationsPage() {
         <SearchBar
           value={search}
           onChange={setSearch}
-          placeholder="Filter by candidate, title, org..."
+          placeholder="Filter by title or candidate..."
         />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Filter size={16} style={{ color: 'var(--text-muted)' }} />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{
-              padding: '0.5rem 1rem',
-              borderRadius: 'var(--radius-md)',
-              border: '1px solid var(--border-color)',
-              background: 'var(--bg-input)',
-              color: 'var(--text-primary)',
-              fontSize: '0.875rem',
-              outline: 'none',
-            }}
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="SUBMITTED">Submitted</option>
-            <option value="UNDER_REVIEW">Under Review</option>
-            <option value="APPROVED">Approved (Finalist)</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {categories.length > 0 && (
+            <select
+              value={selectedCategoryFilter}
+              onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                fontSize: '0.875rem',
+                outline: 'none',
+              }}
+            >
+              <option value="ALL">All Categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={String(c.id)}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Filter size={16} style={{ color: 'var(--text-muted)' }} />
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                fontSize: '0.875rem',
+                outline: 'none',
+              }}
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="SUBMITTED">Submitted</option>
+              <option value="UNDER_REVIEW">Under Review</option>
+              <option value="APPROVED">Approved (Finalist)</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -158,8 +213,8 @@ export default function OrganizerNominationsPage() {
           columns={columns}
           data={filtered}
           loading={loading}
-          emptyMessage="No nominations found"
-          emptyDescription="There are no candidate nominations matching the selected filter."
+          emptyMessage="No nominations found in database"
+          emptyDescription="There are no candidate nominations matching the selected filter in the database."
         />
       </Card>
 
@@ -195,12 +250,12 @@ export default function OrganizerNominationsPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>CANDIDATE</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>CANDIDATE ID</span>
                 <h3 style={{ margin: '0.2rem 0', fontSize: '1.25rem', fontWeight: 700 }}>
-                  {selectedNom.nomineeName}
+                  Nominee #{selectedNom.nomineeId}
                 </h3>
                 <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  {selectedNom.organization || 'Independent Candidate'}
+                  Category: {selectedNom.categoryName}
                 </span>
               </div>
               <StatusBadge status={selectedNom.status || 'SUBMITTED'} size="md" />
@@ -215,20 +270,20 @@ export default function OrganizerNominationsPage() {
 
             <div>
               <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.9rem', fontWeight: 600 }}>
-                Executive Summary
+                Description & Justification
               </h4>
               <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                {selectedNom.summary || 'No summary provided.'}
+                {selectedNom.description || 'No description provided.'}
               </p>
             </div>
 
-            {selectedNom.achievements && (
+            {selectedNom.supportingDocument && (
               <div>
                 <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.9rem', fontWeight: 600 }}>
-                  Key Achievements & Credentials
+                  Supporting Document Attachment
                 </h4>
-                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                  {selectedNom.achievements}
+                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--accent-primary)' }}>
+                  {selectedNom.supportingDocument}
                 </p>
               </div>
             )}

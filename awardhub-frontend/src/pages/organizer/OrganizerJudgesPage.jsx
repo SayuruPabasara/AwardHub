@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, UserPlus, Shield, CheckCircle, Award } from 'lucide-react';
+import { Users, UserPlus, Award } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { categoriesApi } from '../../api/categories';
 import { evaluationApi } from '../../api/evaluation';
@@ -46,13 +46,10 @@ export default function OrganizerJudgesPage() {
 
   const loadJudges = async (catId) => {
     try {
-      const data = await categoriesApi.getJudges(catId);
-      setJudges(Array.isArray(data) ? data : []);
+      const data = await categoriesApi.getJudges(catId).catch(() => evaluationApi.assignmentsByCategory(catId));
+      setJudges(Array.isArray(data) ? data : (data?.data && Array.isArray(data.data) ? data.data : []));
     } catch (err) {
-      setJudges([
-        { id: 101, username: 'dr_miller', email: 'miller@eval.org', status: 'ACTIVE', assignedNoms: 4 },
-        { id: 102, username: 'prof_zhang', email: 'zhang@eval.org', status: 'ACTIVE', assignedNoms: 4 },
-      ]);
+      setJudges([]);
     }
   };
 
@@ -84,9 +81,9 @@ export default function OrganizerJudgesPage() {
       label: 'Judge Account',
       render: (val, row) => (
         <div>
-          <span style={{ fontWeight: 600 }}>{val || `Judge #${row.id}`}</span>
+          <span style={{ fontWeight: 600 }}>{val || `Judge #${row.id || row.judgeId}`}</span>
           <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            {row.email || 'Panel Evaluator'}
+            {row.email || 'Panel Reviewer'}
           </span>
         </div>
       ),
@@ -94,11 +91,11 @@ export default function OrganizerJudgesPage() {
     {
       key: 'assignedNoms',
       label: 'Assigned Worklist',
-      render: (val) => `${val || 0} Dossiers`,
+      render: (val, row) => `${val || row.assignedCount || 0} Dossiers`,
     },
     {
       key: 'status',
-      label: 'Status',
+      label: 'Panel Status',
       render: (val) => (
         <span
           style={{
@@ -129,7 +126,7 @@ export default function OrganizerJudgesPage() {
             Evaluation Panel Assignments
           </h1>
           <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-            Assign accredited judges and peer reviewers to award categories
+            Inspect and assign judges to category panels from the MS SQL database
           </p>
         </div>
         <Button variant="primary" icon={UserPlus} onClick={() => setAssignModalOpen(true)}>
@@ -174,8 +171,8 @@ export default function OrganizerJudgesPage() {
           columns={columns}
           data={judges}
           loading={loading}
-          emptyMessage="No judges assigned"
-          emptyDescription="This category does not have any judges on its panel yet."
+          emptyMessage="No judges assigned to this category"
+          emptyDescription="Assign a judge using the button above to allocate this category to their evaluation panel."
         />
       </Card>
 
@@ -184,7 +181,7 @@ export default function OrganizerJudgesPage() {
         isOpen={assignModalOpen}
         onClose={() => setAssignModalOpen(false)}
         title="Assign Judge to Category"
-        subtitle="Add a certified reviewer to the judging roster"
+        subtitle="Add an accredited reviewer to this award category panel"
         footer={
           <>
             <Button variant="secondary" onClick={() => setAssignModalOpen(false)}>
@@ -205,7 +202,7 @@ export default function OrganizerJudgesPage() {
               type="number"
               value={assignForm.judgeId}
               onChange={(e) => setAssignForm({ ...assignForm, judgeId: e.target.value })}
-              placeholder="e.g. 5"
+              placeholder="e.g. 3"
               style={{
                 width: '100%',
                 padding: '0.65rem 1rem',

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Vote, CheckCircle, Award, AlertCircle, Layers } from 'lucide-react';
+import { Vote, CheckCircle, Award } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { categoriesApi } from '../../api/categories';
 import { votesApi } from '../../api/votes';
-import { evaluationApi } from '../../api/evaluation';
+import { nominationsApi } from '../../api/nominations';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -56,13 +56,13 @@ export default function VoterVotingPage() {
   const loadCandidates = async (catId) => {
     setLoadingCandidates(true);
     try {
-      const data = await evaluationApi.publicResults(catId);
+      const data = await nominationsApi.approvedForCategory(catId);
       const list = Array.isArray(data)
         ? data.map((item) => ({
-            id: item.nominationId || item.id,
-            nomineeName: item.nomineeName || item.candidateName || 'Nominee',
-            description: item.summary || item.nominationTitle || 'Approved Nominee Candidate',
-            organization: item.organization || '',
+            id: item.id,
+            nomineeId: item.nomineeId,
+            title: item.title || `Nomination #${item.id}`,
+            description: item.description || 'Approved Nominee Candidate',
           }))
         : [];
       setCandidates(list);
@@ -80,18 +80,18 @@ export default function VoterVotingPage() {
       await votesApi.cast(selectedCatId, {
         nominationId: selectedCandidate.id,
       });
-      toast.success('Vote successfully cast!');
+      toast.success('Vote successfully cast and recorded in MS SQL database!');
       setConfirmModalOpen(false);
       navigate('/voter/history');
     } catch (err) {
-      toast.error(err.message || 'Failed to submit vote. You may have already voted.');
+      toast.error(err.message || 'Failed to submit vote. You may have already voted in this category.');
     } finally {
       setSubmitting(false);
     }
   };
 
   if (loadingCats) {
-    return <LoadingSpinner message="Loading voting portal..." />;
+    return <LoadingSpinner message="Loading voting portal from database..." />;
   }
 
   const activeCategory = categories.find((c) => String(c.id) === String(selectedCatId));
@@ -101,7 +101,7 @@ export default function VoterVotingPage() {
       <div>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>Cast Your Vote</h1>
         <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-          Select an award category, review certified candidates, and submit your ballot
+          Select an award category, review certified candidates from the database, and submit your ballot
         </p>
       </div>
 
@@ -175,17 +175,17 @@ export default function VoterVotingPage() {
 
       {/* Candidates List */}
       {loadingCandidates ? (
-        <LoadingSpinner message="Fetching candidates..." />
+        <LoadingSpinner message="Fetching certified candidates from database..." />
       ) : candidates.length === 0 ? (
         <EmptyState
           icon={Vote}
-          title="No Nominees Listed"
-          description="There are currently no approved nominees available for public voting in this category yet."
+          title="No Approved Nominees"
+          description="There are currently no approved nominees for voting in this category in the database."
         />
       ) : (
         <div>
           <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1rem' }}>
-            Certified Candidates ({candidates.length})
+            Approved Candidates ({candidates.length})
           </h3>
           <div
             style={{
@@ -234,7 +234,7 @@ export default function VoterVotingPage() {
                         fontWeight: 700,
                       }}
                     >
-                      {cand.nomineeName.slice(0, 2).toUpperCase()}
+                      {(cand.title || 'N').slice(0, 2).toUpperCase()}
                     </div>
                     {isChosen && (
                       <span
@@ -252,13 +252,11 @@ export default function VoterVotingPage() {
                     )}
                   </div>
                   <h4 style={{ fontSize: '1.1rem', fontWeight: 600, margin: '0 0 0.25rem 0' }}>
-                    {cand.nomineeName}
+                    {cand.title}
                   </h4>
-                  {cand.organization && (
-                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                      {cand.organization}
-                    </span>
-                  )}
+                  <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                    Nomination ID: #{cand.id} (Candidate #{cand.nomineeId})
+                  </span>
                   <p
                     style={{
                       fontSize: '0.875rem',
@@ -282,8 +280,8 @@ export default function VoterVotingPage() {
         isOpen={confirmModalOpen}
         onClose={() => setConfirmModalOpen(false)}
         onConfirm={handleCastVote}
-        title="Confirm Your Vote"
-        message={`Are you sure you want to cast your ballot for "${selectedCandidate?.nomineeName}" in ${activeCategory?.name}? Your vote will be cryptographically recorded.`}
+        title="Confirm Your Ballot"
+        message={`Are you sure you want to cast your ballot for "${selectedCandidate?.title}" in ${activeCategory?.name}? Your vote will be recorded in the MS SQL votes table.`}
         confirmText="Confirm Vote"
         variant="primary"
         loading={submitting}

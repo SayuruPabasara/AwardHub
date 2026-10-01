@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, Download, Plus, BarChart2, CheckCircle2 } from 'lucide-react';
+import { Download, Plus } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { reportsApi } from '../../api/reports';
 import Card from '../../components/ui/Card';
@@ -28,14 +28,11 @@ export default function OrganizerReportsPage() {
   const loadReports = async () => {
     setLoading(true);
     try {
-      const data = await reportsApi.getAll();
-      setReports(Array.isArray(data) ? data : []);
+      const res = await reportsApi.getAll();
+      const list = res?.data || (Array.isArray(res) ? res : []);
+      setReports(list);
     } catch (err) {
-      setReports([
-        { id: 1, title: 'Annual Award Voting Audit Summary', type: 'AUDIT', format: 'PDF', generatedAt: '2026-09-30T10:00:00Z', status: 'COMPLETED' },
-        { id: 2, title: 'Finalist Score Breakdown by Category', type: 'SCORES', format: 'CSV', generatedAt: '2026-09-29T14:30:00Z', status: 'COMPLETED' },
-        { id: 3, title: 'Judge Rubric Calibration Report', type: 'JUDGING', format: 'PDF', generatedAt: '2026-09-28T09:15:00Z', status: 'COMPLETED' },
-      ]);
+      setReports([]);
     } finally {
       setLoading(false);
     }
@@ -50,7 +47,7 @@ export default function OrganizerReportsPage() {
     setGenerating(true);
     try {
       await reportsApi.generate(form);
-      toast.success('Report generated successfully!');
+      toast.success('Report successfully generated and stored in database!');
       setGenerateModalOpen(false);
       setForm({ title: '', reportType: 'FINAL_RESULTS', format: 'PDF', roleScope: 'ORGANIZER' });
       loadReports();
@@ -62,7 +59,7 @@ export default function OrganizerReportsPage() {
   };
 
   const handleDownload = (report) => {
-    toast.success(`Downloading ${report.title} (${report.format || 'PDF'})...`);
+    toast.success(`Preparing ${report.title || 'report'} for download...`);
   };
 
   const columns = [
@@ -71,7 +68,7 @@ export default function OrganizerReportsPage() {
       label: 'Report Document',
       render: (val, row) => (
         <div>
-          <span style={{ fontWeight: 600 }}>{val}</span>
+          <span style={{ fontWeight: 600 }}>{val || row.reportType || 'Award Report'}</span>
           <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
             Type: {row.type || row.reportType || 'GENERAL'} • Format: {row.format || 'PDF'}
           </span>
@@ -85,7 +82,7 @@ export default function OrganizerReportsPage() {
     },
     {
       key: 'status',
-      label: 'Status',
+      label: 'Database Status',
       render: (val) => <StatusBadge status={val || 'COMPLETED'} />,
     },
     {
@@ -121,7 +118,7 @@ export default function OrganizerReportsPage() {
             Reports & Analytics Exports
           </h1>
           <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-            Generate verifiable competition audits, PDF ballots, and CSV analytics exports
+            Generate and download reports queried from the MS SQL database
           </p>
         </div>
         <Button variant="primary" icon={Plus} onClick={() => setGenerateModalOpen(true)}>
@@ -134,8 +131,8 @@ export default function OrganizerReportsPage() {
           columns={columns}
           data={reports}
           loading={loading}
-          emptyMessage="No reports available"
-          emptyDescription="Click 'Generate Report' to synthesize your first summary document."
+          emptyMessage="No reports found in database"
+          emptyDescription="Click 'Generate Report' to synthesize your first summary document from current database records."
         />
       </Card>
 
@@ -143,7 +140,7 @@ export default function OrganizerReportsPage() {
         isOpen={generateModalOpen}
         onClose={() => setGenerateModalOpen(false)}
         title="Generate New Report"
-        subtitle="Select dataset, format, and role scope"
+        subtitle="Select dataset type, format, and role scope"
         footer={
           <>
             <Button variant="secondary" onClick={() => setGenerateModalOpen(false)}>

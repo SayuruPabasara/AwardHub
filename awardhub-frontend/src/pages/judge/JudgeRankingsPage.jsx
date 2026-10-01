@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Trophy, Award, Medal, CheckCircle2 } from 'lucide-react';
+import { Trophy, Medal } from 'lucide-react';
 import { categoriesApi } from '../../api/categories';
 import { evaluationApi } from '../../api/evaluation';
 import Card from '../../components/ui/Card';
@@ -32,7 +32,7 @@ export default function JudgeRankingsPage() {
         setSelectedCatId(list[0].id);
       }
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load categories:', err);
     } finally {
       setLoading(false);
     }
@@ -40,30 +40,35 @@ export default function JudgeRankingsPage() {
 
   const loadRankings = async (catId) => {
     try {
-      const data = await evaluationApi.categoryRankings(catId);
-      setRankings(Array.isArray(data) ? data : []);
+      const resultSet = await evaluationApi.latestResults(catId).catch(() => evaluationApi.publishedResults(catId));
+      if (resultSet && Array.isArray(resultSet.entries)) {
+        setRankings(resultSet.entries);
+      } else if (Array.isArray(resultSet)) {
+        setRankings(resultSet);
+      } else {
+        setRankings([]);
+      }
     } catch (err) {
-      setRankings([
-        { rank: 1, nomineeName: 'CardioVision AI', organization: 'Apex Labs', finalScore: 92.4, status: 'CONSENSUS_REACHED' },
-        { rank: 2, nomineeName: 'HealthPulse Pro', organization: 'BioMetrics Inc', finalScore: 89.1, status: 'CONSENSUS_REACHED' },
-        { rank: 3, nomineeName: 'NeuroSync Mobile', organization: 'Cognitive Systems', finalScore: 84.7, status: 'CONSENSUS_REACHED' },
-      ]);
+      setRankings([]);
     }
   };
 
   const columns = [
     {
-      key: 'rank',
+      key: 'rankPosition',
       label: 'Rank',
-      render: (val) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}>
-          {val === 1 ? (
-            <Medal size={20} style={{ color: '#f59e0b' }} />
-          ) : (
-            `#${val}`
-          )}
-        </div>
-      ),
+      render: (val, row) => {
+        const rank = val || row.rank;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}>
+            {rank === 1 ? (
+              <Medal size={20} style={{ color: '#f59e0b' }} />
+            ) : (
+              `#${rank || '—'}`
+            )}
+          </div>
+        );
+      },
       width: '80px',
     },
     {
@@ -71,28 +76,42 @@ export default function JudgeRankingsPage() {
       label: 'Nominee / Project Title',
       render: (val, row) => (
         <div>
-          <span style={{ fontWeight: 600 }}>{val}</span>
-          <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            {row.organization || 'Independent Submission'}
-          </span>
+          <span style={{ fontWeight: 600 }}>{val || `Nomination #${row.nominationId}`}</span>
+          {row.winner && (
+            <span
+              style={{
+                display: 'inline-block',
+                marginLeft: '0.5rem',
+                fontSize: '0.7rem',
+                fontWeight: 700,
+                color: '#f59e0b',
+                background: 'rgba(245, 158, 11, 0.1)',
+                padding: '1px 6px',
+                borderRadius: '4px',
+              }}
+            >
+              WINNER
+            </span>
+          )}
         </div>
       ),
     },
     {
-      key: 'finalScore',
-      label: 'Consensus Weighted Score',
-      render: (val) => (
-        <span style={{ fontWeight: 700, color: 'var(--accent-primary)', fontSize: '1rem' }}>
-          {val} / 100
-        </span>
-      ),
+      key: 'judgeScore',
+      label: 'Judge Score',
+      render: (val) => (val != null ? `${Number(val).toFixed(2)}` : '—'),
     },
     {
-      key: 'status',
-      label: 'Deliberation Status',
+      key: 'voteCount',
+      label: 'Public Votes',
+      render: (val) => val != null ? `${val}` : '0',
+    },
+    {
+      key: 'finalScore',
+      label: 'Final Weighted Score',
       render: (val) => (
-        <span style={{ color: 'var(--status-success)', fontWeight: 600, fontSize: '0.8125rem' }}>
-          {val ? val.replace(/_/g, ' ') : 'VERIFIED'}
+        <span style={{ fontWeight: 700, color: 'var(--accent-primary)', fontSize: '1rem' }}>
+          {val != null ? `${Number(val).toFixed(2)}` : '—'}
         </span>
       ),
     },
@@ -105,7 +124,7 @@ export default function JudgeRankingsPage() {
           Category Finalist Rankings
         </h1>
         <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-          Comparative leaderboard synthesized from all panelist evaluations
+          Comparative leaderboard calculated from verified panelist scores and voter tallies
         </p>
       </div>
 
@@ -145,8 +164,8 @@ export default function JudgeRankingsPage() {
           columns={columns}
           data={rankings}
           loading={loading}
-          emptyMessage="No rankings compiled"
-          emptyDescription="Rankings will appear once evaluations are submitted and aggregated."
+          emptyMessage="No computed rankings found"
+          emptyDescription="Rankings will appear in this category once evaluations are calculated by the award committee."
         />
       </Card>
     </div>
