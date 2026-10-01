@@ -1,0 +1,134 @@
+.tableWrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.tableContainer {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.table thead {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table th {
+  padding: 0.875rem 1.25rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.sortableTh {
+  cursor: pointer;
+}
+
+.sortableTh:hover {
+  color: var(--text-primary);
+}
+
+.thContent {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sortIcons {
+  display: inline-flex;
+  align-items: center;
+}
+
+.activeSort {
+  color: var(--accent-primary);
+}
+
+.inactiveSort {
+  color: var(--text-muted);
+  opacity: 0.4;
+}
+
+.table tbody tr {
+  border-bottom: 1px solid var(--border-color);
+  transition: background var(--transition-fast);
+}
+
+.table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: var(--bg-card-hover);
+}
+
+.clickableRow {
+  cursor: pointer;
+}
+
+.table td {
+  padding: 1rem 1.25rem;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-card);
+}
+
+.pageInfo {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.pageBtns {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pageBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--border-color-strong);
+}
+
+.pageBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.currentPageText {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  padding: 0 0.25rem;
+}
