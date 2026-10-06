@@ -46,6 +46,11 @@ import AdminITPage from './pages/admin/AdminITPage';
 import AdminAuditPage from './pages/admin/AdminAuditPage';
 import AdminHealthPage from './pages/admin/AdminHealthPage';
 
+// Shared (cross-role) Pages
+import FeedbackPage from './pages/shared/FeedbackPage';
+import RoleReportsPage from './pages/shared/RoleReportsPage';
+import OrganizerFeedbackPage from './pages/organizer/OrganizerFeedbackPage';
+
 export default function App() {
   return (
     <Routes>
@@ -87,6 +92,7 @@ export default function App() {
           <Route path="/organizer/judges" element={<OrganizerJudgesPage />} />
           <Route path="/organizer/votes" element={<OrganizerLiveVotesPage />} />
           <Route path="/organizer/reports" element={<OrganizerReportsPage />} />
+          <Route path="/organizer/feedback" element={<OrganizerFeedbackPage />} />
           <Route path="/organizer/audit" element={<OrganizerAuditPage />} />
         </Route>
       </Route>
@@ -111,6 +117,26 @@ export default function App() {
           <Route path="/admin/it" element={<AdminITPage />} />
           <Route path="/admin/audit" element={<AdminAuditPage />} />
           <Route path="/admin/health" element={<AdminHealthPage />} />
+        </Route>
+      </Route>
+
+      {/* Shared: Feedback (every authenticated role) */}
+      <Route
+        element={
+          <ProtectedRoute
+            allowedRoles={['VOTER', 'NOMINEE', 'JUDGE', 'ORGANIZER', 'ADMIN', 'IT_COORDINATOR']}
+          />
+        }
+      >
+        <Route element={<DashboardLayout />}>
+          <Route path="/feedback" element={<FeedbackPage />} />
+        </Route>
+      </Route>
+
+      {/* Shared: Role-scoped reports (backend filters by role) */}
+      <Route element={<ProtectedRoute allowedRoles={['VOTER', 'NOMINEE', 'JUDGE']} />}>
+        <Route element={<DashboardLayout />}>
+          <Route path="/reports" element={<RoleReportsPage />} />
         </Route>
       </Route>
 

@@ -1,55 +1,100 @@
-import React, { useState, useEffect } from 'react';
-import { Download, Plus } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Download, Plus, Eye, Archive, FileText, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { reportsApi } from '../../api/reports';
+import { reportsApi, REPORT_TYPES, REPORT_FORMATS } from '../../api/reports';
+import { categoriesApi } from '../../api/categories';
+import { useAuth } from '../../hooks/useAuth';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import DataTable from '../../components/ui/DataTable';
 import StatusBadge from '../../components/ui/StatusBadge';
 import Modal from '../../components/ui/Modal';
-import { formatDate } from '../../utils/formatters';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
+import ReportViewModal from '../../components/reports/ReportViewModal';
+import AnalyticsPanel from '../../components/reports/AnalyticsPanel';
+import { formatDateTime } from '../../utils/formatters';
+import { unwrapList, humanize, buildCategoryMap, downloadReport } from '../../utils/reportHelpers';
+import styles from '../../components/reports/reports.module.css';
+
+const CONTENT_MAX = 10000;
+const EMPTY_FORM = { reportType: 'NOMINATION', format: 'PDF', categoryId: '', content: '' };
 
 export default function OrganizerReportsPage() {
+  const { user } = useAuth();
+  const [tab, setTab] = useState('reports');
+
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [typeFilter, setTypeFilter] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+
+  const [categories, setCategories] = useState([]);
+  const categoryMap = useMemo(() => buildCategoryMap(categories), [categories]);
+
   const [generateModalOpen, setGenerateModalOpen] = useState(false);
-  const [form, setForm] = useState({
-    title: '',
-    reportType: 'FINAL_RESULTS',
-    format: 'PDF',
-    roleScope: 'ORGANIZER',
-  });
+  const [form, setForm] = useState(EMPTY_FORM);
   const [generating, setGenerating] = useState(false);
 
+  const [viewing, setViewing] = useState(null);
+  const [toArchive, setToArchive] = useState(null);
+  const [archiving, setArchiving] = useState(false);
+
   useEffect(() => {
-    loadReports();
+    categoriesApi
+      .list()
+      .then((res) => setCategories(unwrapList(res)))
+      .catch(() => setCategories([]));
   }, []);
 
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await reportsApi.getAll();
-      const list = res?.data || (Array.isArray(res) ? res : []);
-      setReports(list);
+      const res = typeFilter ? await reportsApi.getByType(typeFilter) : await reportsApi.getAll();
+      setReports(unwrapList(res));
     } catch (err) {
+      toast.error(err.message || 'Failed to load reports');
       setReports([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [typeFilter]);
+
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
+
+  const visibleReports = useMemo(
+    () =>
+      [...reports]
+        .filter((r) => showArchived || !r.archived)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+    [reports, showArchived]
+  );
+  const archivedCount = reports.filter((r) => r.archived).length;
 
   const handleGenerate = async (e) => {
-    e.preventDefault();
-    if (!form.title) {
-      toast.error('Report Title is required');
+    e?.preventDefault();
+    if (form.content.length > CONTENT_MAX) {
+      toast.error(`Content must not exceed ${CONTENT_MAX} characters`);
+      return;
+    }
+    const generatedBy = user?.fullName || user?.email;
+    if (!generatedBy) {
+      toast.error('Unable to identify the current user');
       return;
     }
     setGenerating(true);
     try {
-      await reportsApi.generate(form);
-      toast.success('Report successfully generated and stored in database!');
+      await reportsApi.generate({
+        reportType: form.reportType,
+        format: form.format,
+        categoryId: form.categoryId ? Number(form.categoryId) : null,
+        content: form.content.trim() || null,
+        generatedBy,
+      });
+      toast.success('Report generated');
       setGenerateModalOpen(false);
-      setForm({ title: '', reportType: 'FINAL_RESULTS', format: 'PDF', roleScope: 'ORGANIZER' });
+      setForm(EMPTY_FORM);
       loadReports();
     } catch (err) {
       toast.error(err.message || 'Report generation failed');
@@ -58,176 +103,266 @@ export default function OrganizerReportsPage() {
     }
   };
 
-  const handleDownload = (report) => {
-    toast.success(`Preparing ${report.title || 'report'} for download...`);
+  const handleArchive = async () => {
+    if (!toArchive) return;
+    setArchiving(true);
+    try {
+      await reportsApi.archive(toArchive.id);
+      toast.success('Report archived');
+      setToArchive(null);
+      loadReports();
+    } catch (err) {
+      toast.error(err.message || 'Failed to archive report');
+    } finally {
+      setArchiving(false);
+    }
   };
 
   const columns = [
     {
-      key: 'title',
-      label: 'Report Document',
+      key: 'reportType',
+      label: 'Report',
       render: (val, row) => (
         <div>
-          <span style={{ fontWeight: 600 }}>{val || row.reportType || 'Award Report'}</span>
-          <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Type: {row.type || row.reportType || 'GENERAL'} • Format: {row.format || 'PDF'}
+          <span className={styles.cellTitle}>
+            {humanize(val)} report <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>#{row.id}</span>
+          </span>
+          <span className={styles.cellSub}>
+            {row.categoryId ? categoryMap[row.categoryId] || `Category #${row.categoryId}` : 'All categories'}
           </span>
         </div>
       ),
     },
+    { key: 'format', label: 'Format', render: (val) => val || '—' },
+    { key: 'generatedBy', label: 'Generated By' },
+    { key: 'createdAt', label: 'Created', render: (val) => formatDateTime(val) },
     {
-      key: 'generatedAt',
-      label: 'Generated At',
-      render: (val, row) => formatDate(val || row.createdAt),
-    },
-    {
-      key: 'status',
-      label: 'Database Status',
-      render: (val) => <StatusBadge status={val || 'COMPLETED'} />,
+      key: 'archived',
+      label: 'Status',
+      render: (val) => <StatusBadge status={val ? 'ARCHIVED' : 'ACTIVE'} label={val ? 'Archived' : 'Active'} />,
     },
     {
       key: 'actions',
-      label: 'Action',
+      label: 'Actions',
       sortable: false,
       render: (_, row) => (
-        <Button
-          size="sm"
-          variant="outline"
-          icon={Download}
-          onClick={() => handleDownload(row)}
-        >
-          Download
-        </Button>
+        <div className={styles.rowActions}>
+          <Button id={`report-view-${row.id}`} size="sm" variant="ghost" icon={Eye} onClick={() => setViewing(row)}>
+            View
+          </Button>
+          <Button
+            id={`report-download-${row.id}`}
+            size="sm"
+            variant="outline"
+            icon={Download}
+            onClick={() => downloadReport(row, categoryMap[row.categoryId])}
+          >
+            Download
+          </Button>
+          {!row.archived && (
+            <Button
+              id={`report-archive-${row.id}`}
+              size="sm"
+              variant="ghost"
+              icon={Archive}
+              onClick={() => setToArchive(row)}
+            >
+              Archive
+            </Button>
+          )}
+        </div>
       ),
     },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '1rem',
-        }}
-      >
+    <div className={styles.page}>
+      <div className={styles.pageHeader}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
-            Reports & Analytics Exports
-          </h1>
-          <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-            Generate and download reports queried from the MS SQL database
-          </p>
+          <h1 className={styles.pageTitle}>Reports &amp; Analytics</h1>
+          <p className={styles.pageSubtitle}>Generate, review and archive award reports; track recorded metrics</p>
         </div>
-        <Button variant="primary" icon={Plus} onClick={() => setGenerateModalOpen(true)}>
-          Generate Report
-        </Button>
+        {tab === 'reports' && (
+          <Button id="report-generate-btn" variant="primary" icon={Plus} onClick={() => setGenerateModalOpen(true)}>
+            Generate Report
+          </Button>
+        )}
       </div>
 
-      <Card padding="none">
-        <DataTable
-          columns={columns}
-          data={reports}
-          loading={loading}
-          emptyMessage="No reports found in database"
-          emptyDescription="Click 'Generate Report' to synthesize your first summary document from current database records."
-        />
-      </Card>
+      <div className={styles.tabs} role="tablist">
+        <button
+          id="tab-reports"
+          role="tab"
+          aria-selected={tab === 'reports'}
+          className={`${styles.tab} ${tab === 'reports' ? styles.tabActive : ''}`}
+          onClick={() => setTab('reports')}
+        >
+          <FileText size={16} /> Reports
+        </button>
+        <button
+          id="tab-analytics"
+          role="tab"
+          aria-selected={tab === 'analytics'}
+          className={`${styles.tab} ${tab === 'analytics' ? styles.tabActive : ''}`}
+          onClick={() => setTab('analytics')}
+        >
+          <BarChart3 size={16} /> Analytics
+        </button>
+      </div>
+
+      {tab === 'reports' ? (
+        <Card padding="none">
+          <div className={styles.toolbar}>
+            <div className={styles.chips}>
+              <button
+                id="report-filter-all"
+                className={`${styles.chip} ${!typeFilter ? styles.chipActive : ''}`}
+                onClick={() => setTypeFilter('')}
+              >
+                All types
+              </button>
+              {REPORT_TYPES.map((t) => (
+                <button
+                  key={t}
+                  id={`report-filter-${t.toLowerCase()}`}
+                  className={`${styles.chip} ${typeFilter === t ? styles.chipActive : ''}`}
+                  onClick={() => setTypeFilter(t)}
+                >
+                  {humanize(t)}
+                </button>
+              ))}
+            </div>
+            <label className={styles.toggle}>
+              <input
+                id="report-show-archived"
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+              />
+              Show archived ({archivedCount})
+            </label>
+          </div>
+          <DataTable
+            columns={columns}
+            data={visibleReports}
+            loading={loading}
+            emptyMessage="No reports found"
+            emptyDescription={
+              typeFilter
+                ? `No ${humanize(typeFilter).toLowerCase()} reports yet.`
+                : "Click 'Generate Report' to create your first report."
+            }
+          />
+        </Card>
+      ) : (
+        <AnalyticsPanel categories={categories} categoryMap={categoryMap} />
+      )}
 
       <Modal
         isOpen={generateModalOpen}
         onClose={() => setGenerateModalOpen(false)}
         title="Generate New Report"
-        subtitle="Select dataset type, format, and role scope"
+        subtitle={`Will be recorded as generated by ${user?.fullName || user?.email || 'you'}`}
         footer={
           <>
             <Button variant="secondary" onClick={() => setGenerateModalOpen(false)}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={handleGenerate} loading={generating}>
-              Synthesize Report
+            <Button id="report-generate-submit" variant="primary" onClick={handleGenerate} loading={generating}>
+              Generate
             </Button>
           </>
         }
       >
-        <form onSubmit={handleGenerate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-              Report Title *
-            </label>
-            <input
-              type="text"
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="e.g. Q4 Executive Voting Audit Summary"
-              style={{
-                width: '100%',
-                padding: '0.65rem 1rem',
-                borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-color)',
-                background: 'var(--bg-input)',
-                color: 'var(--text-primary)',
-                fontSize: '0.875rem',
-                outline: 'none',
-              }}
-              required
-            />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+        <form onSubmit={handleGenerate} className={styles.form}>
+          <div className={styles.grid2}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-                Report Dataset Type
-              </label>
+              <label className={styles.label} htmlFor="report-type">Report type *</label>
               <select
+                id="report-type"
+                className={styles.select}
                 value={form.reportType}
                 onChange={(e) => setForm({ ...form, reportType: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.65rem 1rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-input)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.875rem',
-                  outline: 'none',
-                }}
               >
-                <option value="FINAL_RESULTS">Final Award Results & Rankings</option>
-                <option value="VOTE_AUDIT">Ballot Audit & Verification Trail</option>
-                <option value="JUDGE_SCORES">Judge Rubric Scores Breakdown</option>
-                <option value="NOMINEE_DOSSIERS">Nominee Dossiers & Documentation</option>
+                {REPORT_TYPES.map((t) => (
+                  <option key={t} value={t}>{humanize(t)}</option>
+                ))}
               </select>
             </div>
-
             <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-                Export File Format
-              </label>
+              <label className={styles.label} htmlFor="report-format">Format</label>
               <select
+                id="report-format"
+                className={styles.select}
                 value={form.format}
                 onChange={(e) => setForm({ ...form, format: e.target.value })}
-                style={{
-                  width: '100%',
-                  padding: '0.65rem 1rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-input)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.875rem',
-                  outline: 'none',
-                }}
               >
-                <option value="PDF">PDF (Formatted Executive Document)</option>
-                <option value="CSV">CSV (Raw Tabular Spreadsheet)</option>
-                <option value="JSON">JSON (Cryptographic Audit Schema)</option>
+                {REPORT_FORMATS.map((f) => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className={styles.label} htmlFor="report-category">Category</label>
+            <select
+              id="report-category"
+              className={styles.select}
+              value={form.categoryId}
+              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+            >
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{categoryMap[c.id]}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className={styles.label} htmlFor="report-content">
+              <span>Content</span>
+              <span className={`${styles.counter} ${form.content.length > CONTENT_MAX ? styles.counterOver : ''}`}>
+                {form.content.length}/{CONTENT_MAX}
+              </span>
+            </label>
+            <textarea
+              id="report-content"
+              className={styles.textarea}
+              rows={6}
+              value={form.content}
+              onChange={(e) => setForm({ ...form, content: e.target.value })}
+              placeholder={
+                form.format === 'PDF'
+                  ? 'Report body / summary notes…'
+                  : 'Comma-separated rows, e.g.\nnominee,votes\nJane Doe,120'
+              }
+            />
+            <p className={styles.hint}>Optional. Leave blank and the server stores “[auto-generated]”.</p>
           </div>
         </form>
       </Modal>
+
+      <ReportViewModal
+        report={viewing}
+        categoryName={viewing ? categoryMap[viewing.categoryId] : undefined}
+        onClose={() => setViewing(null)}
+      />
+
+      <ConfirmDialog
+        isOpen={!!toArchive}
+        onClose={() => setToArchive(null)}
+        onConfirm={handleArchive}
+        loading={archiving}
+        variant="primary"
+        title="Archive report"
+        message={
+          toArchive
+            ? `Archive ${humanize(toArchive.reportType)} report #${toArchive.id}? It will be hidden from role-scoped report views.`
+            : ''
+        }
+        confirmText="Archive"
+      />
     </div>
   );
 }

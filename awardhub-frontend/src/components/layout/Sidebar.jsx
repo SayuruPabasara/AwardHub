@@ -18,6 +18,9 @@ import {
   Settings,
   Activity,
   FileCheck,
+  MessageSquare,
+  Inbox,
+  FileBarChart,
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import styles from './Sidebar.module.css';
@@ -32,12 +35,16 @@ export default function Sidebar({ collapsed }) {
       { path: '/voter/vote', label: 'Cast Votes', icon: Vote },
       { path: '/voter/history', label: 'My Votes', icon: History },
       { path: '/voter/results', label: 'Results', icon: Trophy },
+      { path: '/reports', label: 'Reports', icon: FileBarChart },
+      { path: '/feedback', label: 'Feedback', icon: MessageSquare },
     ],
     NOMINEE: [
       { path: '/nominee/nominations', label: 'My Nominations', icon: FileText },
       { path: '/nominee/submit', label: 'New Nomination', icon: Send },
       { path: '/nominee/profile', label: 'My Profile', icon: UserCheck },
       { path: '/nominee/feed', label: 'Ceremony Feed', icon: Award },
+      { path: '/reports', label: 'Reports', icon: FileBarChart },
+      { path: '/feedback', label: 'Feedback', icon: MessageSquare },
     ],
     ORGANIZER: [
       { path: '/organizer/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -46,13 +53,17 @@ export default function Sidebar({ collapsed }) {
       { path: '/organizer/judges', label: 'Judge Assignments', icon: ClipboardCheck },
       { path: '/organizer/votes', label: 'Live Votes', icon: Vote },
       { path: '/organizer/reports', label: 'Reports & Analytics', icon: BarChart3 },
+      { path: '/organizer/feedback', label: 'Feedback Inbox', icon: Inbox },
       { path: '/organizer/audit', label: 'Audit Trail', icon: ShieldCheck },
+      { path: '/feedback', label: 'Send Feedback', icon: MessageSquare },
     ],
     JUDGE: [
       { path: '/judge/worklist', label: 'Evaluation Worklist', icon: ClipboardCheck },
       { path: '/judge/scoring', label: 'Score Nominee', icon: Sliders },
       { path: '/judge/rankings', label: 'Rankings', icon: Trophy },
       { path: '/judge/summary', label: 'Evaluation Summary', icon: BarChart3 },
+      { path: '/reports', label: 'Reports', icon: FileBarChart },
+      { path: '/feedback', label: 'Feedback', icon: MessageSquare },
     ],
     ADMIN: [
       { path: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -60,6 +71,8 @@ export default function Sidebar({ collapsed }) {
       { path: '/admin/it', label: 'IT Console', icon: Settings },
       { path: '/admin/audit', label: 'System Audit', icon: ShieldCheck },
       { path: '/admin/health', label: 'System Health', icon: Activity },
+      { path: '/organizer/reports', label: 'Reports & Analytics', icon: BarChart3 },
+      { path: '/organizer/feedback', label: 'Feedback Inbox', icon: Inbox },
     ],
   };
 
