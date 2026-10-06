@@ -1,92 +1,161 @@
-import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Eye, Filter } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  CheckCircle,
+  XCircle,
+  Eye,
+  Filter,
+  Clock,
+  UserCheck,
+  FileText,
+  ExternalLink,
+  AlertTriangle,
+  RefreshCw,
+  Search,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { categoriesApi } from '../../api/categories';
-import { nominationsApi } from '../../api/nominations';
+import {
+  nominationsApi,
+  NOMINATION_STATUSES,
+  NOMINATION_STATUS_LABELS,
+  NOMINATION_ORGANIZER_TRANSITIONS,
+} from '../../api/nominations';
 import Card from '../../components/ui/Card';
+import StatCard from '../../components/ui/StatCard';
 import Button from '../../components/ui/Button';
 import DataTable from '../../components/ui/DataTable';
 import StatusBadge from '../../components/ui/StatusBadge';
 import Modal from '../../components/ui/Modal';
 import SearchBar from '../../components/ui/SearchBar';
-import { formatDate } from '../../utils/formatters';
+import { NominationRejectModal } from '../../components/nomination/NominationModal';
+import { formatDate, formatDateTime } from '../../utils/formatters';
+import { unwrapList, buildCategoryMap } from '../../utils/reportHelpers';
 
 export default function OrganizerNominationsPage() {
   const [nominations, setNominations] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('ALL');
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [selectedNom, setSelectedNom] = useState(null);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  const [inspectNom, setInspectNom] = useState(null);
+  const [rejectingNom, setRejectingNom] = useState(null);
   const [updating, setUpdating] = useState(false);
 
-  useEffect(() => {
-    loadNominations();
-  }, []);
+  const categoryMap = useMemo(() => buildCategoryMap(categories), [categories]);
 
-  const loadNominations = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const cats = await categoriesApi.list();
-      const catList = Array.isArray(cats) ? cats : [];
+      const catsRes = await categoriesApi.list();
+      const catList = unwrapList(catsRes);
       setCategories(catList);
 
       if (catList.length > 0) {
+        // Fetch nominations for all categories
         const nomPromises = catList.map((c) =>
           nominationsApi.forCategory(c.id).catch(() => [])
         );
         const results = await Promise.allSettled(nomPromises);
         let allNoms = [];
         results.forEach((r, idx) => {
-          if (r.status === 'fulfilled' && Array.isArray(r.value)) {
-            const mapped = r.value.map((nom) => ({
-              ...nom,
-              categoryName: catList[idx]?.name || `Category #${nom.categoryId}`,
-            }));
-            allNoms = [...allNoms, ...mapped];
+          if (r.status === 'fulfilled') {
+            const list = unwrapList(r.value);
+            allNoms = [...allNoms, ...list];
           }
         });
-        setNominations(allNoms);
+
+        // Deduplicate by id if needed and sort newest first
+        const unique = Array.from(new Map(allNoms.map((n) => [n.id, n])).values());
+        unique.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        setNominations(unique);
       } else {
         setNominations([]);
       }
     } catch (err) {
-      console.error(err);
+      toast.error('Failed to load nomination review queue');
       setNominations([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const handleUpdateStatus = async (nomId, newStatus) => {
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  // Counts by status
+  const counts = useMemo(() => {
+    const c = { ALL: nominations.length, SUBMITTED: 0, UNDER_REVIEW: 0, APPROVED: 0, REJECTED: 0, DRAFT: 0 };
+    nominations.forEach((n) => {
+      if (c[n.status] !== undefined) c[n.status] += 1;
+    });
+    return c;
+  }, [nominations]);
+
+  // Review Workflow Handlers
+  const handleMoveToReview = async (nomId) => {
     setUpdating(true);
     try {
-      if (newStatus === 'APPROVED') {
-        await nominationsApi.approve(nomId);
-      } else if (newStatus === 'REJECTED') {
-        await nominationsApi.reject(nomId, 'Rejected during review');
-      } else {
-        await nominationsApi.update(nomId, { status: newStatus });
-      }
-      toast.success(`Nomination status changed to ${newStatus}`);
-      setSelectedNom(null);
-      loadNominations();
+      await nominationsApi.moveToReview(nomId);
+      toast.success('Nomination dossier moved to Under Review');
+      setInspectNom(null);
+      loadData();
     } catch (err) {
-      toast.error(err.message || 'Failed to update status');
+      toast.error(err.message || 'Failed to update review status');
     } finally {
       setUpdating(false);
     }
   };
 
-  const filtered = nominations.filter((nom) => {
-    const titleMatch = (nom.title || '').toLowerCase().includes(search.toLowerCase());
-    const descMatch = (nom.description || '').toLowerCase().includes(search.toLowerCase());
-    const matchesSearch = titleMatch || descMatch || String(nom.nomineeId).includes(search);
-    const matchesStatus = statusFilter === 'ALL' || nom.status === statusFilter;
-    const matchesCategory = selectedCategoryFilter === 'ALL' || String(nom.categoryId) === selectedCategoryFilter;
-    return matchesSearch && matchesStatus && matchesCategory;
-  });
+  const handleApprove = async (nomId) => {
+    setUpdating(true);
+    try {
+      await nominationsApi.approve(nomId);
+      toast.success('Nomination approved for the ballot!');
+      setInspectNom(null);
+      loadData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to approve nomination');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleConfirmReject = async (reason) => {
+    if (!rejectingNom) return;
+    setUpdating(true);
+    try {
+      await nominationsApi.reject(rejectingNom.id, reason);
+      toast.success('Nomination rejected and reason logged');
+      setRejectingNom(null);
+      setInspectNom(null);
+      loadData();
+    } catch (err) {
+      toast.error(err.message || 'Failed to reject nomination');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Filtered dataset
+  const filtered = useMemo(() => {
+    return nominations.filter((nom) => {
+      const q = search.trim().toLowerCase();
+      const titleMatch = (nom.title || '').toLowerCase().includes(q);
+      const descMatch = (nom.description || '').toLowerCase().includes(q);
+      const nomineeMatch = String(nom.nomineeId || '').includes(q);
+      const idMatch = String(nom.id || '').includes(q);
+      const matchesSearch = !q || titleMatch || descMatch || nomineeMatch || idMatch;
+
+      const matchesStatus = statusFilter === 'ALL' || nom.status === statusFilter;
+      const matchesCategory =
+        selectedCategoryFilter === 'ALL' || String(nom.categoryId) === String(selectedCategoryFilter);
+
+      return matchesSearch && matchesStatus && matchesCategory;
+    });
+  }, [nominations, search, statusFilter, selectedCategoryFilter]);
 
   const columns = [
     {
@@ -94,17 +163,26 @@ export default function OrganizerNominationsPage() {
       label: 'Nomination Dossier',
       render: (val, row) => (
         <div>
-          <span style={{ fontWeight: 600 }}>{val || 'Project Title'}</span>
-          <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Candidate ID: #{row.nomineeId} • Ref #{row.id}
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+            {val || 'Award Dossier'}
+          </span>
+          <span
+            style={{
+              display: 'block',
+              fontSize: '0.75rem',
+              color: 'var(--text-muted)',
+              marginTop: '2px',
+            }}
+          >
+            Ref #{row.id} • Candidate #{row.nomineeId}
           </span>
         </div>
       ),
     },
     {
-      key: 'categoryName',
+      key: 'categoryId',
       label: 'Award Category',
-      render: (val, row) => val || `Category #${row.categoryId}`,
+      render: (val) => categoryMap[val] || `Category #${val}`,
     },
     {
       key: 'createdAt',
@@ -113,19 +191,22 @@ export default function OrganizerNominationsPage() {
     },
     {
       key: 'status',
-      label: 'Status',
-      render: (val) => <StatusBadge status={val || 'SUBMITTED'} />,
+      label: 'Review Status',
+      render: (val) => (
+        <StatusBadge status={val} label={NOMINATION_STATUS_LABELS[val] || val} />
+      ),
     },
     {
       key: 'actions',
-      label: 'Review',
+      label: 'Action',
       sortable: false,
       render: (_, row) => (
         <Button
           size="sm"
           variant="outline"
           icon={Eye}
-          onClick={() => setSelectedNom(row)}
+          onClick={() => setInspectNom(row)}
+          aria-label="Inspect nomination dossier"
         >
           Inspect
         </Button>
@@ -135,15 +216,44 @@ export default function OrganizerNominationsPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
-          Nomination Review Queue
-        </h1>
-        <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-          Evaluate applicant dossiers, verify evidence documents, and qualify nominees for voting
-        </p>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '1rem',
+        }}
+      >
+        <div>
+          <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
+            Nomination Review Queue
+          </h1>
+          <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
+            Inspect candidate dossiers, verify criteria, move to review, and approve or reject submissions
+          </p>
+        </div>
+        <Button variant="secondary" icon={RefreshCw} onClick={loadData}>
+          Refresh Queue
+        </Button>
       </div>
 
+      {/* Queue Stat Cards */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '1rem',
+        }}
+      >
+        <StatCard title="Total In Queue" value={counts.ALL} accent="indigo" />
+        <StatCard title="Submitted" value={counts.SUBMITTED} accent="blue" />
+        <StatCard title="Under Review" value={counts.UNDER_REVIEW} accent="amber" />
+        <StatCard title="Approved" value={counts.APPROVED} accent="green" />
+        <StatCard title="Rejected" value={counts.REJECTED} accent="purple" />
+      </div>
+
+      {/* Toolbar: Search, Category Filter, and Status Filter */}
       <div
         style={{
           display: 'flex',
@@ -156,7 +266,7 @@ export default function OrganizerNominationsPage() {
         <SearchBar
           value={search}
           onChange={setSearch}
-          placeholder="Filter by title or candidate..."
+          placeholder="Search by title, description, or candidate ID..."
         />
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
@@ -174,7 +284,7 @@ export default function OrganizerNominationsPage() {
                 outline: 'none',
               }}
             >
-              <option value="ALL">All Categories</option>
+              <option value="ALL">All Categories ({categories.length})</option>
               {categories.map((c) => (
                 <option key={c.id} value={String(c.id)}>
                   {c.name}
@@ -183,8 +293,8 @@ export default function OrganizerNominationsPage() {
             </select>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Filter size={16} style={{ color: 'var(--text-muted)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <Filter size={15} style={{ color: 'var(--text-muted)' }} />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -198,11 +308,12 @@ export default function OrganizerNominationsPage() {
                 outline: 'none',
               }}
             >
-              <option value="ALL">All Statuses</option>
-              <option value="SUBMITTED">Submitted</option>
-              <option value="UNDER_REVIEW">Under Review</option>
-              <option value="APPROVED">Approved (Finalist)</option>
-              <option value="REJECTED">Rejected</option>
+              <option value="ALL">All Statuses ({counts.ALL})</option>
+              <option value="SUBMITTED">Submitted ({counts.SUBMITTED})</option>
+              <option value="UNDER_REVIEW">Under Review ({counts.UNDER_REVIEW})</option>
+              <option value="APPROVED">Approved ({counts.APPROVED})</option>
+              <option value="REJECTED">Rejected ({counts.REJECTED})</option>
+              <option value="DRAFT">Draft ({counts.DRAFT})</option>
             </select>
           </div>
         </div>
@@ -213,83 +324,234 @@ export default function OrganizerNominationsPage() {
           columns={columns}
           data={filtered}
           loading={loading}
-          emptyMessage="No nominations found in database"
-          emptyDescription="There are no candidate nominations matching the selected filter in the database."
+          onRowClick={(row) => setInspectNom(row)}
+          emptyMessage="No nominations found"
+          emptyDescription={
+            statusFilter !== 'ALL' || selectedCategoryFilter !== 'ALL' || search
+              ? 'No candidate nominations match the active filters.'
+              : 'No candidate nominations have been submitted for review yet.'
+          }
         />
       </Card>
 
-      {/* Inspect / Approve / Reject Modal */}
+      {/* Inspect & Action Modal */}
       <Modal
-        isOpen={Boolean(selectedNom)}
-        onClose={() => setSelectedNom(null)}
-        title="Dossier Review & Qualification"
-        subtitle={`Nomination ID #${selectedNom?.id}`}
+        isOpen={Boolean(inspectNom)}
+        onClose={() => setInspectNom(null)}
+        title="Dossier Review & Decision"
+        subtitle={
+          inspectNom
+            ? `Ref #${inspectNom.id} • Candidate #${inspectNom.nomineeId} • Category: ${
+                categoryMap[inspectNom.categoryId] || `Category #${inspectNom.categoryId}`
+              }`
+            : ''
+        }
         size="lg"
         footer={
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <Button
-              variant="danger"
-              icon={XCircle}
-              loading={updating}
-              onClick={() => handleUpdateStatus(selectedNom?.id, 'REJECTED')}
-            >
-              Reject Dossier
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+            <Button variant="secondary" onClick={() => setInspectNom(null)}>
+              Close
             </Button>
-            <Button
-              variant="success"
-              icon={CheckCircle}
-              loading={updating}
-              onClick={() => handleUpdateStatus(selectedNom?.id, 'APPROVED')}
-            >
-              Approve for Ballot
-            </Button>
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              {inspectNom && inspectNom.status === 'SUBMITTED' && (
+                <Button
+                  variant="outline"
+                  icon={Clock}
+                  loading={updating}
+                  onClick={() => handleMoveToReview(inspectNom.id)}
+                >
+                  Move to Review
+                </Button>
+              )}
+
+              {inspectNom && (inspectNom.status === 'SUBMITTED' || inspectNom.status === 'UNDER_REVIEW') && (
+                <>
+                  <Button
+                    variant="danger"
+                    icon={XCircle}
+                    loading={updating}
+                    onClick={() => setRejectingNom(inspectNom)}
+                  >
+                    Reject Dossier
+                  </Button>
+                  <Button
+                    variant="success"
+                    icon={CheckCircle}
+                    loading={updating}
+                    onClick={() => handleApprove(inspectNom.id)}
+                  >
+                    Approve for Ballot
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         }
       >
-        {selectedNom && (
+        {inspectNom && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {/* Header summary */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--bg-tertiary)',
+                border: '1px solid var(--border-color)',
+              }}
+            >
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>CANDIDATE ID</span>
-                <h3 style={{ margin: '0.2rem 0', fontSize: '1.25rem', fontWeight: 700 }}>
-                  Nominee #{selectedNom.nomineeId}
-                </h3>
-                <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  Category: {selectedNom.categoryName}
-                </span>
-              </div>
-              <StatusBadge status={selectedNom.status || 'SUBMITTED'} size="md" />
-            </div>
-
-            <div style={{ background: 'var(--bg-tertiary)', padding: '1rem', borderRadius: 'var(--radius-md)' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                PROJECT TITLE
-              </span>
-              <p style={{ margin: '0.25rem 0 0 0', fontWeight: 600 }}>{selectedNom.title}</p>
-            </div>
-
-            <div>
-              <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.9rem', fontWeight: 600 }}>
-                Description & Justification
-              </h4>
-              <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                {selectedNom.description || 'No description provided.'}
-              </p>
-            </div>
-
-            {selectedNom.supportingDocument && (
-              <div>
-                <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.9rem', fontWeight: 600 }}>
-                  Supporting Document Attachment
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>CANDIDATE</span>
+                <h4 style={{ margin: '0.1rem 0 0 0', fontSize: '1.1rem', fontWeight: 700 }}>
+                  Nominee #{inspectNom.nomineeId}
                 </h4>
-                <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--accent-primary)' }}>
-                  {selectedNom.supportingDocument}
-                </p>
+              </div>
+              <StatusBadge
+                status={inspectNom.status}
+                label={NOMINATION_STATUS_LABELS[inspectNom.status] || inspectNom.status}
+                size="md"
+              />
+            </div>
+
+            {/* Rejection Alert if already rejected */}
+            {inspectNom.status === 'REJECTED' && (
+              <div
+                style={{
+                  padding: '1rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--status-error-soft)',
+                  border: '1px solid var(--status-error)',
+                  display: 'flex',
+                  gap: '0.75rem',
+                }}
+              >
+                <AlertTriangle size={20} style={{ color: 'var(--status-error)', flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <h5 style={{ margin: '0 0 0.25rem 0', color: 'var(--status-error)', fontWeight: 700, fontSize: '0.875rem' }}>
+                    Rejection Feedback Recorded
+                  </h5>
+                  <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-primary)', lineHeight: 1.5 }}>
+                    {inspectNom.rejectionReason || 'No rejection reason recorded.'}
+                  </p>
+                  {inspectNom.reviewedAt && (
+                    <span style={{ display: 'block', marginTop: '0.4rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Decided on {formatDateTime(inspectNom.reviewedAt)} by Staff #{inspectNom.reviewedBy}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Approval Banner if already approved */}
+            {inspectNom.status === 'APPROVED' && (
+              <div
+                style={{
+                  padding: '0.9rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--status-success-soft)',
+                  border: '1px solid var(--status-success)',
+                  display: 'flex',
+                  gap: '0.75rem',
+                  alignItems: 'center',
+                }}
+              >
+                <CheckCircle size={20} style={{ color: 'var(--status-success)', flexShrink: 0 }} />
+                <div>
+                  <span style={{ fontWeight: 600, color: 'var(--status-success)', fontSize: '0.875rem' }}>
+                    Approved and Qualified for Ballot
+                  </span>
+                  {inspectNom.reviewedAt && (
+                    <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Decided on {formatDateTime(inspectNom.reviewedAt)} by Staff #{inspectNom.reviewedBy}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Title */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                Project / Nomination Title
+              </label>
+              <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                {inspectNom.title}
+              </h3>
+            </div>
+
+            {/* Description */}
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                Description & Justification Dossier
+              </label>
+              <div
+                style={{
+                  padding: '1rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  fontSize: '0.875rem',
+                  lineHeight: 1.6,
+                  whiteSpace: 'pre-wrap',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                {inspectNom.description || 'No description provided.'}
+              </div>
+            </div>
+
+            {/* Supporting Document */}
+            {inspectNom.supportingDocument && (
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '0.3rem' }}>
+                  Supporting Document Link
+                </label>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.65rem 1rem',
+                    borderRadius: 'var(--radius-md)',
+                    background: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)',
+                  }}
+                >
+                  <FileText size={16} style={{ color: 'var(--accent-primary)' }} />
+                  <a
+                    href={inspectNom.supportingDocument}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: 'var(--accent-primary)',
+                      fontSize: '0.875rem',
+                      textDecoration: 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      wordBreak: 'break-all',
+                    }}
+                  >
+                    {inspectNom.supportingDocument}
+                    <ExternalLink size={14} />
+                  </a>
+                </div>
               </div>
             )}
           </div>
         )}
       </Modal>
+
+      {/* Mandatory Rejection Reason Modal */}
+      <NominationRejectModal
+        nomination={rejectingNom}
+        isOpen={Boolean(rejectingNom)}
+        onClose={() => setRejectingNom(null)}
+        onConfirm={handleConfirmReject}
+        loading={updating}
+      />
     </div>
   );
 }

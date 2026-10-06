@@ -7,7 +7,10 @@ import {
   CheckCircle,
   ArrowLeft,
   ArrowRight,
-  Upload,
+  Save,
+  Link as LinkIcon,
+  AlertCircle,
+  Calendar,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { categoriesApi } from '../../api/categories';
@@ -15,6 +18,11 @@ import { nominationsApi } from '../../api/nominations';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import StatusBadge from '../../components/ui/StatusBadge';
+import { unwrapList } from '../../utils/reportHelpers';
+import { formatDateTime } from '../../utils/formatters';
+
+const TITLE_MAX = 150;
 
 export default function NomineeSubmitPage() {
   const navigate = useNavigate();
@@ -22,16 +30,13 @@ export default function NomineeSubmitPage() {
   const [loadingCats, setLoadingCats] = useState(true);
   const [currentStep, setCurrentStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
 
   const [form, setForm] = useState({
     categoryId: '',
     title: '',
-    nomineeName: '',
-    organization: '',
-    summary: '',
-    achievements: '',
-    impactStatement: '',
-    status: 'SUBMITTED',
+    description: '',
+    supportingDocument: '',
   });
 
   useEffect(() => {
@@ -41,14 +46,25 @@ export default function NomineeSubmitPage() {
   const loadCategories = async () => {
     setLoadingCats(true);
     try {
-      const data = await categoriesApi.listPublic();
-      const list = Array.isArray(data) ? data : [];
+      // Try dedicated nominee endpoint first; fall back to listPublic
+      let list = [];
+      try {
+        const res = await categoriesApi.forNominee();
+        list = unwrapList(res);
+      } catch (e) {
+        const res = await categoriesApi.listPublic();
+        list = unwrapList(res);
+      }
+
       setCategories(list);
       if (list.length > 0) {
-        setForm((prev) => ({ ...prev, categoryId: list[0].id }));
+        // Select first open category or first available
+        const firstOpen = list.find((c) => c.nominationOpen !== false) || list[0];
+        setForm((prev) => ({ ...prev, categoryId: firstOpen.id }));
       }
     } catch (err) {
       toast.error('Failed to load award categories');
+      setCategories([]);
     } finally {
       setLoadingCats(false);
     }
@@ -58,17 +74,74 @@ export default function NomineeSubmitPage() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async (e) => {
-    if (e) e.preventDefault();
-    if (!form.title || !form.nomineeName || !form.summary) {
-      toast.error('Please fill in all mandatory nomination fields');
-      return;
+  const validateForm = () => {
+    if (!form.categoryId) {
+      toast.error('Please select an award category');
+      setCurrentStep(1);
+      return false;
     }
+    if (!form.title.trim()) {
+      toast.error('Nomination title is required');
+      setCurrentStep(2);
+      return false;
+    }
+    if (form.title.length > TITLE_MAX) {
+      toast.error(`Title must not exceed ${TITLE_MAX} characters`);
+      setCurrentStep(2);
+      return false;
+    }
+    if (!form.description.trim()) {
+      toast.error('Nomination description is required');
+      setCurrentStep(2);
+      return false;
+    }
+    return true;
+  };
+
+  /* Action 1: Save as DRAFT */
+  const handleSaveDraft = async () => {
+    if (!validateForm()) return;
+
+    setSavingDraft(true);
+    try {
+      await nominationsApi.create({
+        categoryId: Number(form.categoryId),
+        title: form.title.trim(),
+        description: form.description.trim(),
+        supportingDocument: form.supportingDocument.trim() || null,
+      });
+      toast.success('Nomination saved as Draft! You can edit and submit it later.');
+      navigate('/nominee/nominations');
+    } catch (err) {
+      toast.error(err.message || 'Failed to save draft');
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  /* Action 2: Create DRAFT and immediately SUBMIT for Review */
+  const handleSubmitFinal = async (e) => {
+    if (e) e.preventDefault();
+    if (!validateForm()) return;
 
     setSubmitting(true);
     try {
-      await nominationsApi.create(form);
-      toast.success('Nomination successfully submitted for review!');
+      // 1. Create draft nomination
+      const created = await nominationsApi.create({
+        categoryId: Number(form.categoryId),
+        title: form.title.trim(),
+        description: form.description.trim(),
+        supportingDocument: form.supportingDocument.trim() || null,
+      });
+
+      const nomId = created?.id || created?.data?.id;
+      if (!nomId) {
+        throw new Error('Created nomination ID was not returned');
+      }
+
+      // 2. Submit draft for official review
+      await nominationsApi.submit(nomId);
+      toast.success('Nomination officially submitted for committee review!');
       navigate('/nominee/nominations');
     } catch (err) {
       toast.error(err.message || 'Failed to submit nomination');
@@ -78,23 +151,23 @@ export default function NomineeSubmitPage() {
   };
 
   if (loadingCats) {
-    return <LoadingSpinner message="Preparing nomination wizard..." />;
+    return <LoadingSpinner message="Loading award categories..." />;
   }
 
   const selectedCategory = categories.find((c) => String(c.id) === String(form.categoryId));
 
   return (
-    <div style={{ maxWidth: 840, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+    <div style={{ maxWidth: 880, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <Button variant="ghost" size="sm" icon={ArrowLeft} onClick={() => navigate('/nominee/nominations')}>
-          Back
+          Back to Nominations
         </Button>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>
             Submit Award Nomination
           </h1>
           <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0 0', fontSize: '0.875rem' }}>
-            Complete the multi-step application to enter the candidate into competition
+            Complete the nomination application to enter into competition
           </p>
         </div>
       </div>
@@ -110,7 +183,7 @@ export default function NomineeSubmitPage() {
       >
         {[
           { step: 1, label: 'Select Category', icon: Layers },
-          { step: 2, label: 'Candidate Details', icon: FileText },
+          { step: 2, label: 'Nomination Dossier', icon: FileText },
           { step: 3, label: 'Review & Confirm', icon: CheckCircle },
         ].map((item) => {
           const isDone = currentStep > item.step;
@@ -142,6 +215,7 @@ export default function NomineeSubmitPage() {
                   justifyContent: 'center',
                   fontWeight: 700,
                   fontSize: '0.875rem',
+                  boxShadow: isCurrent ? '0 0 12px rgba(99, 102, 241, 0.35)' : 'none',
                 }}
               >
                 <Icon size={18} />
@@ -162,62 +236,99 @@ export default function NomineeSubmitPage() {
 
       {/* Step 1: Category Selection */}
       {currentStep === 1 && (
-        <Card title="Step 1: Choose Award Category">
+        <Card title="Step 1: Choose Award Category" subtitle="Select an active award category accepting candidate submissions">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            <label style={{ fontSize: '0.875rem', fontWeight: 600 }}>
-              Select from active award categories:
-            </label>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))',
-                gap: '1rem',
-              }}
-            >
-              {categories.map((cat) => {
-                const isSelected = String(cat.id) === String(form.categoryId);
-                return (
-                  <div
-                    key={cat.id}
-                    onClick={() => setForm({ ...form, categoryId: cat.id })}
-                    style={{
-                      padding: '1.25rem',
-                      borderRadius: 'var(--radius-md)',
-                      border: isSelected
-                        ? '2px solid var(--accent-primary)'
-                        : '1px solid var(--border-color)',
-                      background: isSelected ? 'var(--accent-soft)' : 'var(--bg-card)',
-                      cursor: 'pointer',
-                      transition: 'all var(--transition-fast)',
-                    }}
-                  >
-                    <span
+            {categories.length === 0 ? (
+              <div
+                style={{
+                  padding: '2.5rem 1rem',
+                  textAlign: 'center',
+                  border: '1px dashed var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                <AlertCircle size={32} style={{ margin: '0 auto 0.75rem', color: 'var(--status-warning)' }} />
+                <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--text-primary)' }}>No active categories available</h4>
+                <p style={{ margin: 0, fontSize: '0.875rem' }}>
+                  There are currently no active categories open for nominations. Please check back when nomination windows open.
+                </p>
+              </div>
+            ) : (
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                  gap: '1rem',
+                }}
+              >
+                {categories.map((cat) => {
+                  const isSelected = String(cat.id) === String(form.categoryId);
+                  const isClosed = cat.nominationOpen === false;
+                  return (
+                    <div
+                      key={cat.id}
+                      onClick={() => !isClosed && setForm({ ...form, categoryId: cat.id })}
                       style={{
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        color: 'var(--accent-primary)',
+                        padding: '1.25rem',
+                        borderRadius: 'var(--radius-md)',
+                        border: isSelected
+                          ? '2px solid var(--accent-primary)'
+                          : '1px solid var(--border-color)',
+                        background: isSelected
+                          ? 'var(--accent-soft)'
+                          : isClosed
+                          ? 'var(--bg-tertiary)'
+                          : 'var(--bg-card)',
+                        cursor: isClosed ? 'not-allowed' : 'pointer',
+                        opacity: isClosed ? 0.6 : 1,
+                        transition: 'all var(--transition-fast)',
+                        position: 'relative',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
                       }}
                     >
-                      {cat.code || 'CAT'}
-                    </span>
-                    <h4 style={{ margin: '0.25rem 0 0.5rem 0', fontSize: '1rem', fontWeight: 600 }}>
-                      {cat.name}
-                    </h4>
-                    <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                      {cat.description || 'Excellence award category'}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                          <span
+                            style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 700,
+                              color: 'var(--accent-primary)',
+                            }}
+                          >
+                            {cat.code || `CAT #${cat.id}`}
+                          </span>
+                          <StatusBadge status={isClosed ? 'CLOSED' : 'ACTIVE'} label={isClosed ? 'Closed' : 'Open'} size="sm" />
+                        </div>
+                        <h4 style={{ margin: '0.25rem 0 0.5rem 0', fontSize: '1rem', fontWeight: 600 }}>
+                          {cat.name}
+                        </h4>
+                        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                          {cat.description || 'Award category open for nominations.'}
+                        </p>
+                      </div>
 
-            {selectedCategory && (selectedCategory.nominationRequirements || selectedCategory.nomineeEligibility || selectedCategory.nominationEndDate) && (
+                      {cat.nominationEndDate && (
+                        <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          <Calendar size={13} />
+                          <span>Deadline: {formatDateTime(cat.nominationEndDate)}</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {selectedCategory && (
               <div
                 style={{
                   padding: '1rem 1.25rem',
                   borderRadius: 'var(--radius-md)',
-                  background: 'var(--accent-soft)',
-                  border: '1px solid var(--accent-primary)',
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '0.5rem',
@@ -230,7 +341,7 @@ export default function NomineeSubmitPage() {
                   </h5>
                   {selectedCategory.nominationEndDate && (
                     <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                      Deadline: {selectedCategory.nominationEndDate.replace('T', ' ').slice(0, 16)}
+                      Deadline: {formatDateTime(selectedCategory.nominationEndDate)}
                     </span>
                   )}
                 </div>
@@ -244,6 +355,11 @@ export default function NomineeSubmitPage() {
                     <strong>Required Documentation:</strong> {selectedCategory.nominationRequirements}
                   </div>
                 )}
+                {selectedCategory.rules && (
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                    <strong>Rules:</strong> {selectedCategory.rules}
+                  </div>
+                )}
               </div>
             )}
 
@@ -252,29 +368,35 @@ export default function NomineeSubmitPage() {
                 variant="primary"
                 icon={ArrowRight}
                 iconPosition="right"
+                disabled={!selectedCategory || selectedCategory.nominationOpen === false}
                 onClick={() => setCurrentStep(2)}
               >
-                Next: Candidate Details
+                Next: Dossier Details
               </Button>
             </div>
           </div>
         </Card>
       )}
 
-      {/* Step 2: Nomination Information */}
+      {/* Step 2: Nomination Dossier */}
       {currentStep === 2 && (
-        <Card title="Step 2: Candidate & Project Details">
+        <Card title="Step 2: Nomination Dossier" subtitle="Provide the title, achievements, and supporting documentation for your submission">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-                Nomination / Project Title *
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                  Nomination / Project Title *
+                </label>
+                <span style={{ fontSize: '0.75rem', color: form.title.length > TITLE_MAX ? 'var(--status-error)' : 'var(--text-muted)' }}>
+                  {form.title.length}/{TITLE_MAX}
+                </span>
+              </div>
               <input
                 type="text"
                 name="title"
                 value={form.title}
                 onChange={handleChange}
-                placeholder="e.g. NextGen Autonomous Medical Diagnostics Platform"
+                placeholder="e.g. NeuralFlow: Low-Latency Edge LLM Inference Engine"
                 style={{
                   width: '100%',
                   padding: '0.65rem 1rem',
@@ -284,69 +406,22 @@ export default function NomineeSubmitPage() {
                   color: 'var(--text-primary)',
                   fontSize: '0.875rem',
                   outline: 'none',
+                  boxSizing: 'border-box',
                 }}
                 required
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-                  Nominee / Candidate Name *
-                </label>
-                <input
-                  type="text"
-                  name="nomineeName"
-                  value={form.nomineeName}
-                  onChange={handleChange}
-                  placeholder="Full name or Team lead"
-                  style={{
-                    width: '100%',
-                    padding: '0.65rem 1rem',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--bg-input)',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.875rem',
-                    outline: 'none',
-                  }}
-                  required
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-                  Organization / Affiliation
-                </label>
-                <input
-                  type="text"
-                  name="organization"
-                  value={form.organization}
-                  onChange={handleChange}
-                  placeholder="Company, Institute or Lab"
-                  style={{
-                    width: '100%',
-                    padding: '0.65rem 1rem',
-                    borderRadius: 'var(--radius-md)',
-                    border: '1px solid var(--border-color)',
-                    background: 'var(--bg-input)',
-                    color: 'var(--text-primary)',
-                    fontSize: '0.875rem',
-                    outline: 'none',
-                  }}
-                />
-              </div>
-            </div>
-
             <div>
               <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-                Executive Summary *
+                Comprehensive Description & Justification *
               </label>
               <textarea
-                name="summary"
-                rows={3}
-                value={form.summary}
+                name="description"
+                rows={6}
+                value={form.description}
                 onChange={handleChange}
-                placeholder="Briefly describe the candidate's core achievements and nomination justification..."
+                placeholder="Detail the candidate's breakthrough achievements, quantifiable benchmarks, innovation scope, and justification for this award..."
                 style={{
                   width: '100%',
                   padding: '0.65rem 1rem',
@@ -357,46 +432,60 @@ export default function NomineeSubmitPage() {
                   fontSize: '0.875rem',
                   outline: 'none',
                   resize: 'vertical',
+                  lineHeight: 1.5,
+                  boxSizing: 'border-box',
                 }}
                 required
               />
+              <span style={{ display: 'block', marginTop: '0.3rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Include measurable milestones, adoption statistics, patent details, and compliance verifications.
+              </span>
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.4rem' }}>
-                Key Achievements & Breakthroughs
+                Supporting Document / Verification URL
               </label>
-              <textarea
-                name="achievements"
-                rows={3}
-                value={form.achievements}
-                onChange={handleChange}
-                placeholder="Highlight quantifiable milestones, publications, patents, or market adoption..."
-                style={{
-                  width: '100%',
-                  padding: '0.65rem 1rem',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border-color)',
-                  background: 'var(--bg-input)',
-                  color: 'var(--text-primary)',
-                  fontSize: '0.875rem',
-                  outline: 'none',
-                  resize: 'vertical',
-                }}
-              />
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="url"
+                  name="supportingDocument"
+                  value={form.supportingDocument}
+                  onChange={handleChange}
+                  placeholder="https://example.com/whitepaper-or-architecture.pdf"
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem 1rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--bg-input)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.875rem',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+              <span style={{ display: 'block', marginTop: '0.3rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Optional. Link to a technical whitepaper, public GitHub repository, verification deck, or demo video.
+              </span>
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem' }}>
               <Button variant="secondary" onClick={() => setCurrentStep(1)}>
-                Previous
+                Previous: Category
               </Button>
               <Button
                 variant="primary"
                 icon={ArrowRight}
                 iconPosition="right"
                 onClick={() => {
-                  if (!form.title || !form.nomineeName || !form.summary) {
-                    toast.error('Please complete title, candidate name, and summary');
+                  if (!form.title.trim()) {
+                    toast.error('Nomination title is required');
+                    return;
+                  }
+                  if (!form.description.trim()) {
+                    toast.error('Description is required');
                     return;
                   }
                   setCurrentStep(3);
@@ -411,7 +500,7 @@ export default function NomineeSubmitPage() {
 
       {/* Step 3: Review & Submit */}
       {currentStep === 3 && (
-        <Card title="Step 3: Verification & Official Submission">
+        <Card title="Step 3: Verification & Official Submission" subtitle="Review your dossier before saving as a draft or officially submitting for judging">
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             <div
               style={{
@@ -420,48 +509,94 @@ export default function NomineeSubmitPage() {
                 borderRadius: 'var(--radius-md)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.75rem',
+                gap: '0.85rem',
+                border: '1px solid var(--border-color)',
               }}
             >
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>AWARD CATEGORY</span>
-                <p style={{ margin: '0.15rem 0 0 0', fontWeight: 600 }}>{selectedCategory?.name}</p>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PROJECT / SUBMISSION</span>
-                <p style={{ margin: '0.15rem 0 0 0', fontWeight: 600 }}>{form.title}</p>
-              </div>
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>CANDIDATE & ORG</span>
-                <p style={{ margin: '0.15rem 0 0 0' }}>
-                  {form.nomineeName} {form.organization ? `(${form.organization})` : ''}
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Target Award Category
+                </span>
+                <p style={{ margin: '0.15rem 0 0 0', fontWeight: 600, fontSize: '1rem' }}>
+                  {selectedCategory?.name}
                 </p>
               </div>
+
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>EXECUTIVE SUMMARY</span>
-                <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                  {form.summary}
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Nomination / Project Title
+                </span>
+                <p style={{ margin: '0.15rem 0 0 0', fontWeight: 600, fontSize: '1.05rem', color: 'var(--accent-primary)' }}>
+                  {form.title}
                 </p>
               </div>
+
+              <div>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Description & Justification
+                </span>
+                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                  {form.description}
+                </p>
+              </div>
+
+              {form.supportingDocument && (
+                <div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                    Supporting Document
+                  </span>
+                  <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.875rem' }}>
+                    <a
+                      href={form.supportingDocument}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: 'var(--accent-primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <LinkIcon size={14} /> {form.supportingDocument}
+                    </a>
+                  </p>
+                </div>
+              )}
             </div>
 
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0 }}>
-              By submitting this nomination, you certify that all provided details and achievements
-              are accurate and verifiable by the judging panel.
-            </p>
+            <div
+              style={{
+                padding: '0.9rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                background: 'var(--status-info-soft)',
+                border: '1px solid var(--status-info)',
+                fontSize: '0.8125rem',
+                color: 'var(--text-primary)',
+                lineHeight: 1.5,
+              }}
+            >
+              💡 <strong>Submission note:</strong> Saving as a draft allows you to edit or withdraw your nomination later. Once officially submitted for review, the dossier is locked and queued for organizer inspection.
+            </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
               <Button variant="secondary" onClick={() => setCurrentStep(2)}>
                 Edit Details
               </Button>
-              <Button
-                variant="primary"
-                icon={Send}
-                loading={submitting}
-                onClick={handleSubmit}
-              >
-                Submit Nomination
-              </Button>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <Button
+                  variant="outline"
+                  icon={Save}
+                  loading={savingDraft}
+                  disabled={submitting}
+                  onClick={handleSaveDraft}
+                >
+                  Save as Draft
+                </Button>
+                <Button
+                  variant="primary"
+                  icon={Send}
+                  loading={submitting}
+                  disabled={savingDraft}
+                  onClick={handleSubmitFinal}
+                >
+                  Submit for Review
+                </Button>
+              </div>
             </div>
           </div>
         </Card>

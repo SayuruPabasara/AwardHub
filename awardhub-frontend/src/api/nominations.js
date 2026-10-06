@@ -17,4 +17,32 @@ export const nominationsApi = {
   reject: (id, rejectionReason) => api.post(`/nominations/${id}/reject`, { rejectionReason }),
 };
 
+/* ------------------------------------------------------------------
+ * Enum mirrors — MUST stay in sync with com.awardhub.common.enums.NominationStatus
+ * ------------------------------------------------------------------ */
+export const NOMINATION_STATUSES = ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED'];
+
+export const NOMINATION_STATUS_LABELS = {
+  DRAFT: 'Draft',
+  SUBMITTED: 'Submitted',
+  UNDER_REVIEW: 'Under Review',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+};
+
+/**
+ * Valid state transitions allowed by backend NominationService:
+ * - Nominee: DRAFT -> SUBMITTED (via submit endpoint)
+ * - Organizer: SUBMITTED -> UNDER_REVIEW, APPROVED, REJECTED
+ * - Organizer: UNDER_REVIEW -> APPROVED, REJECTED
+ */
+export const NOMINATION_ORGANIZER_TRANSITIONS = {
+  SUBMITTED: ['UNDER_REVIEW', 'APPROVED', 'REJECTED'],
+  UNDER_REVIEW: ['APPROVED', 'REJECTED'],
+  DRAFT: [],
+  APPROVED: [],
+  REJECTED: [],
+};
+
 export default nominationsApi;
+
