@@ -41,6 +41,17 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- MS SQL Server — the official, university-mandated database.
+             See application-mssql.properties.example / application-mysql.properties.example
+             for how the active engine is selected. Both drivers ship in the
+             jar; only one is actually used at runtime based on the active
+             Spring profile, so there's no cost to keeping both. -->
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
         <!-- Spring Security (role-based access) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -58,6 +69,27 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
+        </dependency>
+
+        <!-- JWT (used by vote.security.JwtService / JwtAuthFilter) -->
+        <!-- INTEGRATION FIX: this was missing entirely; JwtService already used
+             io.jsonwebtoken.* classes without it, so the module could not compile. -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.12.6</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.12.6</version>
+            <scope>runtime</scope>
         </dependency>
 
         <!-- Testing -->
