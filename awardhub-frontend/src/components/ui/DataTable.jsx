@@ -31,9 +31,17 @@ export default function DataTable({
     }
   };
 
+  const safeData = useMemo(() => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.content)) return data.content;
+    if (Array.isArray(data?.items)) return data.items;
+    if (Array.isArray(data?.data)) return data.data;
+    return [];
+  }, [data]);
+
   const sortedData = useMemo(() => {
-    if (!sortKey) return data;
-    return [...data].sort((a, b) => {
+    if (!sortKey) return safeData;
+    return [...safeData].sort((a, b) => {
       const valA = a[sortKey];
       const valB = b[sortKey];
       if (valA == null) return 1;
@@ -47,7 +55,7 @@ export default function DataTable({
       if (strA > strB) return sortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [data, sortKey, sortDirection]);
+  }, [safeData, sortKey, sortDirection]);
 
   const totalPages = Math.ceil((sortedData.length || 0) / pageSize) || 1;
   const paginatedData = useMemo(() => {
@@ -59,7 +67,7 @@ export default function DataTable({
     return <LoadingSpinner message="Loading records..." />;
   }
 
-  if (!data || data.length === 0) {
+  if (!safeData || safeData.length === 0) {
     return <EmptyState icon={Inbox} title={emptyMessage} description={emptyDescription} />;
   }
 

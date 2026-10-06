@@ -41,6 +41,17 @@
   max-width: 980px;
 }
 
+.xxl {
+  max-width: 1140px;
+}
+
+.studio {
+  max-width: 1200px;
+  width: 95vw;
+  height: 85vh;
+  max-height: calc(100vh - 2.5rem);
+}
+
 .header {
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--border-color);
@@ -48,6 +59,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+  flex-shrink: 0;
 }
 
 .title {
@@ -84,7 +96,25 @@
 .body {
   padding: 1.5rem;
   overflow-y: auto;
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.body::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+.body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
 }
 
 .footer {
@@ -95,6 +125,7 @@
   align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 @keyframes fadeIn {

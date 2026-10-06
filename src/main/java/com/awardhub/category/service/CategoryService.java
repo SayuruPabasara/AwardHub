@@ -73,6 +73,37 @@ public class CategoryService {
      */
     @Transactional
     public CategoryDetailsResponse createCategory(CategoryRequest request) {
+        if (request.getAwardEventId() == null) {
+            request.setAwardEventId(1L);
+        }
+        if (request.getDescription() == null || request.getDescription().isBlank()) {
+            request.setDescription(request.getName() != null ? request.getName().trim() : "Category");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        if (request.getVotingEndDate() == null) {
+            request.setVotingEndDate(now.plusDays(14));
+        }
+        if (request.getVotingStartDate() == null) {
+            request.setVotingStartDate(now);
+        }
+        if (request.getNominationEndDate() == null) {
+            request.setNominationEndDate(request.getVotingStartDate());
+        }
+        if (request.getNominationStartDate() == null) {
+            request.setNominationStartDate(request.getNominationEndDate().minusDays(14));
+        }
+        if (request.getResultPublicationDate() == null) {
+            request.setResultPublicationDate(request.getVotingEndDate().plusDays(2));
+        }
+        if (request.getCriteria() == null || request.getCriteria().isEmpty()) {
+            CategoryCriterionRequest defaultCriterion = new CategoryCriterionRequest();
+            defaultCriterion.setCriterionName("Overall Merit & Excellence");
+            defaultCriterion.setDescription("General evaluation criteria for this category.");
+            defaultCriterion.setWeight(new BigDecimal("100.00"));
+            defaultCriterion.setMaxScore(100);
+            request.setCriteria(List.of(defaultCriterion));
+        }
+
         log.info("Creating new award category: '{}' for award event id: {}", request.getName(), request.getAwardEventId());
 
         if (categoryRepository.existsByAwardEventIdAndName(request.getAwardEventId(), request.getName().trim())) {
@@ -171,6 +202,47 @@ public class CategoryService {
 
         if (category.getStatus() == CategoryStatus.ARCHIVED) {
             throw new BadRequestException("Archived category cannot be modified.");
+        }
+
+        if (request.getAwardEventId() == null) {
+            request.setAwardEventId(category.getAwardEventId() != null ? category.getAwardEventId() : 1L);
+        }
+        if (request.getDescription() == null || request.getDescription().isBlank()) {
+            request.setDescription(category.getDescription() != null ? category.getDescription() : request.getName().trim());
+        }
+        if (request.getVotingEndDate() == null) {
+            request.setVotingEndDate(category.getVotingEndDate() != null ? category.getVotingEndDate() : LocalDateTime.now().plusDays(14));
+        }
+        if (request.getVotingStartDate() == null) {
+            request.setVotingStartDate(category.getVotingStartDate() != null ? category.getVotingStartDate() : LocalDateTime.now());
+        }
+        if (request.getNominationEndDate() == null) {
+            request.setNominationEndDate(category.getNominationEndDate() != null ? category.getNominationEndDate() : request.getVotingStartDate());
+        }
+        if (request.getNominationStartDate() == null) {
+            request.setNominationStartDate(category.getNominationStartDate() != null ? category.getNominationStartDate() : request.getNominationEndDate().minusDays(14));
+        }
+        if (request.getResultPublicationDate() == null) {
+            request.setResultPublicationDate(category.getResultPublicationDate() != null ? category.getResultPublicationDate() : request.getVotingEndDate().plusDays(2));
+        }
+        if (request.getCriteria() == null || request.getCriteria().isEmpty()) {
+            if (category.getCriteria() != null && !category.getCriteria().isEmpty()) {
+                request.setCriteria(category.getCriteria().stream().map(c -> {
+                    CategoryCriterionRequest cr = new CategoryCriterionRequest();
+                    cr.setCriterionName(c.getCriterionName());
+                    cr.setDescription(c.getDescription());
+                    cr.setWeight(c.getWeight());
+                    cr.setMaxScore(c.getMaxScore());
+                    return cr;
+                }).collect(Collectors.toList()));
+            } else {
+                CategoryCriterionRequest defaultCriterion = new CategoryCriterionRequest();
+                defaultCriterion.setCriterionName("Overall Merit & Excellence");
+                defaultCriterion.setDescription("General evaluation criteria for this category.");
+                defaultCriterion.setWeight(new BigDecimal("100.00"));
+                defaultCriterion.setMaxScore(100);
+                request.setCriteria(List.of(defaultCriterion));
+            }
         }
 
         if (categoryRepository.existsByAwardEventIdAndNameAndIdNot(request.getAwardEventId(), request.getName().trim(), id)) {

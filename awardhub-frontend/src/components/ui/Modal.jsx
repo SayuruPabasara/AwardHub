@@ -7,9 +7,12 @@ export default function Modal({
   onClose,
   title,
   subtitle,
+  headerContent,
   children,
   size = 'md',
   footer,
+  style,
+  bodyStyle,
 }) {
   useEffect(() => {
     function handleKeyDown(e) {
@@ -33,20 +36,30 @@ export default function Modal({
     <div className={styles.backdrop} onClick={onClose}>
       <div
         className={`${styles.modal} ${styles[size] || styles.md}`}
+        style={style}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
         <div className={styles.header}>
-          <div>
-            <h2 className={styles.title}>{title}</h2>
-            {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '1rem' }}>
+              <div>
+                <h2 className={styles.title}>{title}</h2>
+                {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
+              </div>
+              <button className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
+                <X size={20} />
+              </button>
+            </div>
+            {headerContent && (
+              <div style={{ marginTop: '1rem' }}>
+                {headerContent}
+              </div>
+            )}
           </div>
-          <button className={styles.closeBtn} onClick={onClose} aria-label="Close modal">
-            <X size={20} />
-          </button>
         </div>
-        <div className={styles.body}>{children}</div>
+        <div className={styles.body} style={bodyStyle}>{children}</div>
         {footer && <div className={styles.footer}>{footer}</div>}
       </div>
     </div>

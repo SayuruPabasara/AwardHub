@@ -9,14 +9,12 @@ import java.util.List;
 
 public class CategoryUpdateRequest {
 
-    @NotNull(message = "Award event is required")
     private Long awardEventId;
 
     @NotBlank(message = "Category name is required")
     @Size(max = 150, message = "Category name cannot exceed 150 characters")
     private String name;
 
-    @NotBlank(message = "Category description is required")
     private String description;
 
     private String rules;
@@ -27,24 +25,18 @@ public class CategoryUpdateRequest {
 
     private String nominationRequirements;
 
-    @NotNull(message = "Nomination start date is required")
     private LocalDateTime nominationStartDate;
 
-    @NotNull(message = "Nomination end date is required")
     private LocalDateTime nominationEndDate;
 
-    @NotNull(message = "Voting start date is required")
     private LocalDateTime votingStartDate;
 
-    @NotNull(message = "Voting end date is required")
     private LocalDateTime votingEndDate;
 
-    @NotNull(message = "Result publication date is required")
     private LocalDateTime resultPublicationDate;
 
     private CategoryStatus status;
 
-    @NotEmpty(message = "At least one judging criterion is required")
     @Valid
     private List<CategoryCriterionRequest> criteria = new ArrayList<>();
 

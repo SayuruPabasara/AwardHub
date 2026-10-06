@@ -210,6 +210,43 @@ export default function NomineeSubmitPage() {
                 );
               })}
             </div>
+
+            {selectedCategory && (selectedCategory.nominationRequirements || selectedCategory.nomineeEligibility || selectedCategory.nominationEndDate) && (
+              <div
+                style={{
+                  padding: '1rem 1.25rem',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--accent-soft)',
+                  border: '1px solid var(--accent-primary)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.5rem',
+                  marginTop: '0.5rem',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h5 style={{ margin: 0, fontWeight: 700, color: 'var(--accent-primary)', fontSize: '0.9rem' }}>
+                    📋 Requirements for {selectedCategory.name}
+                  </h5>
+                  {selectedCategory.nominationEndDate && (
+                    <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                      Deadline: {selectedCategory.nominationEndDate.replace('T', ' ').slice(0, 16)}
+                    </span>
+                  )}
+                </div>
+                {selectedCategory.nomineeEligibility && (
+                  <div style={{ fontSize: '0.8125rem' }}>
+                    <strong>Eligibility:</strong> {selectedCategory.nomineeEligibility}
+                  </div>
+                )}
+                {selectedCategory.nominationRequirements && (
+                  <div style={{ fontSize: '0.8125rem' }}>
+                    <strong>Required Documentation:</strong> {selectedCategory.nominationRequirements}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
               <Button
                 variant="primary"
