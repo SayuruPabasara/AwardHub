@@ -23,6 +23,16 @@ export const categoriesApi = {
   },
   getForNominee: (id) => api.get(`/nominee/categories/${id}`),
 
+  /* Voter specific category endpoints */
+  forVoter: (search = '', eventId = '') => {
+    const params = new URLSearchParams();
+    if (search) params.append('search', search);
+    if (eventId) params.append('eventId', eventId);
+    const qs = params.toString();
+    return api.get(`/voter/categories${qs ? '?' + qs : ''}`);
+  },
+  getForVoter: (id) => api.get(`/voter/categories/${id}`),
+
   /* Criteria */
   getCriteria: (id) => api.get(`/categories/${id}/criteria`),
   addCriterion: (id, data) => api.post(`/categories/${id}/criteria`, data),

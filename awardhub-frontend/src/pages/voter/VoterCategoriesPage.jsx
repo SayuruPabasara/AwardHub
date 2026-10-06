@@ -23,8 +23,10 @@ export default function VoterCategoriesPage() {
   const loadCategories = async () => {
     setLoading(true);
     try {
-      const data = await categoriesApi.listPublic();
-      setCategories(Array.isArray(data) ? data : []);
+      const data = await categoriesApi.forVoter().catch(() => categoriesApi.listPublic());
+      const raw = data?.data !== undefined ? data.data : data;
+      const list = Array.isArray(raw) ? raw : (raw?.content || []);
+      setCategories(list);
     } catch (err) {
       console.error(err);
     } finally {
@@ -102,7 +104,10 @@ export default function VoterCategoriesPage() {
                   >
                     <Award size={20} />
                   </div>
-                  <StatusBadge status={cat.status || 'ACTIVE'} />
+                  <StatusBadge
+                    status={cat.isVotingOpen ? 'VOTING_OPEN' : cat.status || 'ACTIVE'}
+                    label={cat.isVotingOpen ? 'Voting Open' : undefined}
+                  />
                 </div>
 
                 <div>
@@ -114,7 +119,7 @@ export default function VoterCategoriesPage() {
                       letterSpacing: '0.04em',
                     }}
                   >
-                    {cat.code || 'CAT'}
+                    {cat.code || (cat.awardEventName ? cat.awardEventName : 'AWARD')}
                   </span>
                   <h3 style={{ fontSize: '1.15rem', fontWeight: 600, margin: '0.25rem 0 0.5rem 0' }}>
                     {cat.name}
@@ -151,7 +156,11 @@ export default function VoterCategoriesPage() {
                     }}
                   >
                     <Clock size={14} />
-                    {cat.deadline ? formatDate(cat.deadline) : 'Open Voting'}
+                    {cat.votingEndDate
+                      ? `Closes ${formatDate(cat.votingEndDate)}`
+                      : cat.deadline
+                      ? formatDate(cat.deadline)
+                      : 'Open Voting'}
                   </span>
                   <Button
                     size="sm"
@@ -159,7 +168,7 @@ export default function VoterCategoriesPage() {
                     icon={Vote}
                     onClick={() => navigate(`/voter/vote?category=${cat.id}`)}
                   >
-                    Vote Now
+                    {cat.isVotingOpen ? 'Vote Now' : 'View Ballot'}
                   </Button>
                 </div>
               </div>

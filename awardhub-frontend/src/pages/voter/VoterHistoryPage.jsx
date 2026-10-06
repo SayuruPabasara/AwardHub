@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { History, Trash2, Award, Calendar, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { votesApi } from '../../api/votes';
+import { categoriesApi } from '../../api/categories';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
 import DataTable from '../../components/ui/DataTable';
@@ -17,14 +18,43 @@ export default function VoterHistoryPage() {
   const [withdrawing, setWithdrawing] = useState(false);
 
   useEffect(() => {
-    loadVotes();
+    loadVotesAndCategories();
   }, []);
 
-  const loadVotes = async () => {
+  const loadVotesAndCategories = async () => {
     setLoading(true);
     try {
-      const data = await votesApi.mine();
-      setVotes(Array.isArray(data) ? data : []);
+      const [votesData, catsData] = await Promise.allSettled([
+        votesApi.mine(),
+        categoriesApi.forVoter().catch(() => categoriesApi.listPublic()),
+      ]);
+
+      const rawVotes = votesData.status === 'fulfilled' && Array.isArray(votesData.value)
+        ? votesData.value
+        : [];
+
+      let categories = [];
+      if (catsData.status === 'fulfilled') {
+        const val = catsData.value;
+        const raw = val?.data !== undefined ? val.data : val;
+        categories = Array.isArray(raw) ? raw : (raw?.content || []);
+      }
+
+      const catMap = new Map();
+      categories.forEach((cat) => {
+        catMap.set(String(cat.id), cat);
+      });
+
+      const enriched = rawVotes.map((v) => {
+        const cat = catMap.get(String(v.categoryId));
+        return {
+          ...v,
+          categoryName: cat?.name || `Award Category #${v.categoryId}`,
+          categoryCode: cat?.code || null,
+        };
+      });
+
+      setVotes(enriched);
     } catch (err) {
       toast.error('Failed to load voting history');
     } finally {
@@ -39,7 +69,7 @@ export default function VoterHistoryPage() {
       await votesApi.withdraw(withdrawTarget.categoryId);
       toast.success('Vote successfully withdrawn');
       setWithdrawTarget(null);
-      loadVotes();
+      loadVotesAndCategories();
     } catch (err) {
       toast.error(err.message || 'Failed to withdraw vote');
     } finally {
