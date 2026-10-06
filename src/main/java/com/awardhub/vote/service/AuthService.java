@@ -4,6 +4,7 @@ import com.awardhub.common.audit.AuditLogService;
 import com.awardhub.common.enums.Role;
 import com.awardhub.common.exception.BadRequestException;
 import com.awardhub.user.entity.AccountStatus;
+import com.awardhub.user.entity.Nominee;
 import com.awardhub.user.entity.User;
 import com.awardhub.user.repository.UserRepository;
 import com.awardhub.vote.dto.AuthDTOs.AuthResponse;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 /**
  * INTEGRATION FIX applied here:
@@ -59,45 +61,71 @@ public class AuthService {
 
     @Transactional
     public AuthResponse register(RegisterRequest req, String ip) {
-        if (req.name() == null || req.name().isBlank()) throw new BadRequestException("Name is required.");
+        String name = req.resolveName();
+        if (name == null || name.isBlank()) throw new BadRequestException("Name is required.");
         if (req.email() == null || !req.email().contains("@")) throw new BadRequestException("Valid email is required.");
         if (req.password() == null || req.password().length() < 6) throw new BadRequestException("Password must be at least 6 characters.");
-        if (req.nic() == null) throw new BadRequestException("NIC number is required.");
 
-        String nic = req.nic().trim().toUpperCase();
-        if (!nic.matches("\\d{9}[VX]") && !nic.matches("\\d{12}")) {
-            throw new BadRequestException("Please enter a valid NIC number (old format 123456789V or new format 12 digits).");
-        }
-        if (users.existsByEmailIgnoreCase(req.email())) {
+        String email = req.email().trim();
+        if (users.existsByEmailIgnoreCase(email)) {
             throw new BadRequestException("An account with this email already exists.");
         }
-        if (users.existsByNicIgnoreCase(nic)) {
-            throw new BadRequestException("This NIC number is already registered to another account. One account per person.");
+
+        String username = req.resolveUsername();
+        if (username != null && !username.isBlank()) {
+            if (users.findByUsername(username).isPresent()) {
+                throw new BadRequestException("An account with this username already exists.");
+            }
+        } else {
+            username = email;
         }
 
-        User user = new User();
-        user.setUsername(req.email().trim());
-        user.setFullName(req.name().trim());
-        user.setEmail(req.email().trim());
+        String nic = null;
+        if (req.nic() != null && !req.nic().isBlank()) {
+            nic = req.nic().trim().toUpperCase();
+            if (!nic.matches("\\d{9}[VX]") && !nic.matches("\\d{12}")) {
+                throw new BadRequestException("Please enter a valid NIC number (old format 123456789V or new format 12 digits).");
+            }
+            if (users.existsByNicIgnoreCase(nic)) {
+                throw new BadRequestException("This NIC number is already registered to another account. One account per person.");
+            }
+        }
+
+        Role role = Role.VOTER;
+        if (req.role() != null && !req.role().isBlank()) {
+            try {
+                role = Role.valueOf(req.role().trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                role = Role.VOTER;
+            }
+        }
+
+        User user = (role == Role.NOMINEE) ? new Nominee() : new User();
+        user.setUsername(username);
+        user.setFullName(name);
+        user.setEmail(email);
         user.setPassword(encoder.encode(req.password()));
         user.setNic(nic);
-        user.setRole(Role.VOTER);
-        user.setAvatar(initials(req.name()));
-        // Registration still requires the email-OTP verification step the team
-        // decided on (see voting-system notes) before the account becomes ACTIVE;
-        // that verification endpoint is a separate piece of work, not part of
-        // this fix. Left at the entity's default (PENDING_VERIFICATION).
+        user.setRole(role);
+        user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setAvatar(initials(name));
+        if (user instanceof Nominee nom) {
+            nom.setNicPassport(nic);
+        }
+
         User saved = users.save(user);
 
         audit.log(saved.getId(), "ACCOUNT_REGISTERED", "User", saved.getId(),
-                "New voter account registered from IP " + ip);
+                "New " + role + " account registered from IP " + ip);
 
         return new AuthResponse(jwtService.generateToken(saved), UserDto.from(saved));
     }
 
     @Transactional
     public AuthResponse login(LoginRequest req, String ip) {
-        User user = users.findByEmailIgnoreCase(req.email() == null ? "" : req.email())
+        String identifier = req.resolveIdentifier();
+        User user = users.findByEmailIgnoreCase(identifier)
+                .or(() -> users.findByUsername(identifier))
                 .orElseThrow(() -> new BadRequestException("Invalid email or password."));
 
         if (!user.isLoginAllowed()) {

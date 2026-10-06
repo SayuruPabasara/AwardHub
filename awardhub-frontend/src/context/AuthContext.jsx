@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
   }, [token]);
 
   const login = useCallback(async (username, password) => {
-    const data = await authApi.login({ username, password });
+    const data = await authApi.login({ username, email: username, password });
     if (data.token) {
       localStorage.setItem('awardhub_token', data.token);
       setToken(data.token);

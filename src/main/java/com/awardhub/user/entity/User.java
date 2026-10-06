@@ -106,6 +106,6 @@ public class User {
 
     /** True only for an account that is allowed to authenticate. */
     public boolean isLoginAllowed() {
-        return accountStatus == AccountStatus.ACTIVE;
+        return accountStatus == AccountStatus.ACTIVE || accountStatus == AccountStatus.PENDING_VERIFICATION;
     }
 }

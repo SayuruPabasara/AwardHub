@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Award, Mail, Lock, User, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Award, Mail, Lock, User, ShieldCheck, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../hooks/useAuth';
 import Button from '../../components/ui/Button';
@@ -11,8 +11,10 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const { register } = useAuth();
   const [formData, setFormData] = useState({
+    fullName: '',
     username: '',
     email: '',
+    nic: '',
     password: '',
     role: 'VOTER',
   });
@@ -27,7 +29,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.username || !formData.email || !formData.password) {
+    if (!formData.fullName.trim() || !formData.username.trim() || !formData.email.trim() || !formData.password) {
       setError('Please fill in all required fields.');
       return;
     }
@@ -37,9 +39,12 @@ export default function RegisterPage() {
 
     try {
       await register({
-        username: formData.username,
-        email: formData.email,
+        name: formData.fullName.trim(),
+        fullName: formData.fullName.trim(),
+        username: formData.username.trim(),
+        email: formData.email.trim(),
         password: formData.password,
+        nic: formData.nic ? formData.nic.trim() : undefined,
         role: formData.role,
       });
       setRegisteredSuccess(true);
@@ -83,10 +88,9 @@ export default function RegisterPage() {
             >
               <CheckCircle2 size={36} />
             </div>
-            <h2 className={styles.title}>Registration Submitted!</h2>
+            <h2 className={styles.title}>Registration Successful!</h2>
             <p className={styles.subtitle} style={{ marginBottom: '2rem' }}>
-              Your account has been created with status <strong>Pending Verification</strong>.
-              You can now sign in once verified.
+              Your account has been created successfully. You can now sign in with your credentials.
             </p>
             <Button
               variant="primary"
@@ -117,6 +121,25 @@ export default function RegisterPage() {
 
             <form onSubmit={handleSubmit} className={styles.form}>
               <div className={styles.field}>
+                <label htmlFor="fullName" className={styles.label}>
+                  Full Name
+                </label>
+                <div className={styles.inputWrapper}>
+                  <User size={16} className={styles.fieldIcon} />
+                  <input
+                    id="fullName"
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    placeholder="e.g. John Doe"
+                    className={styles.input}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className={styles.field}>
                 <label htmlFor="username" className={styles.label}>
                   Username
                 </label>
@@ -128,7 +151,7 @@ export default function RegisterPage() {
                     name="username"
                     value={formData.username}
                     onChange={handleChange}
-                    placeholder="johndoe"
+                    placeholder="e.g. johndoe"
                     className={styles.input}
                     required
                   />
@@ -191,6 +214,29 @@ export default function RegisterPage() {
                   <option value="JUDGE">Judge (Panel Evaluation)</option>
                 </select>
               </div>
+
+              {formData.role === 'VOTER' && (
+                <div className={styles.field}>
+                  <label htmlFor="nic" className={styles.label}>
+                    NIC / National ID{' '}
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      (Required for voting: e.g. 200012345678 or 123456789V)
+                    </span>
+                  </label>
+                  <div className={styles.inputWrapper}>
+                    <ShieldCheck size={16} className={styles.fieldIcon} />
+                    <input
+                      id="nic"
+                      type="text"
+                      name="nic"
+                      value={formData.nic}
+                      onChange={handleChange}
+                      placeholder="e.g. 200012345678 or 123456789V"
+                      className={styles.input}
+                    />
+                  </div>
+                </div>
+              )}
 
               <Button
                 type="submit"

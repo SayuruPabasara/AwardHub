@@ -81,7 +81,7 @@ export default function LoginPage() {
         <form onSubmit={handleSubmit} className={styles.form}>
           <div className={styles.field}>
             <label htmlFor="username" className={styles.label}>
-              Username
+              Username or Email
             </label>
             <div className={styles.inputWrapper}>
               <Mail size={16} className={styles.fieldIcon} />
@@ -91,7 +91,7 @@ export default function LoginPage() {
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                placeholder="Enter your username"
+                placeholder="Enter your username or email"
                 className={styles.input}
                 autoComplete="username"
                 required

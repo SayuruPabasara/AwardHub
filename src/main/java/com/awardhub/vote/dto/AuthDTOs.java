@@ -39,8 +39,36 @@ public final class AuthDTOs {
         }
     }
 
-    public record RegisterRequest(String name, String email, String password, String nic) {}
-    public record LoginRequest(String email, String password) {}
+    public record RegisterRequest(String name, String fullName, String username, String email, String password, String nic, String role) {
+        public RegisterRequest(String name, String email, String password, String nic) {
+            this(name, null, null, email, password, nic, null);
+        }
+
+        public String resolveName() {
+            if (name != null && !name.isBlank()) return name.trim();
+            if (fullName != null && !fullName.isBlank()) return fullName.trim();
+            if (username != null && !username.isBlank()) return username.trim();
+            return null;
+        }
+
+        public String resolveUsername() {
+            if (username != null && !username.isBlank()) return username.trim();
+            if (email != null && !email.isBlank()) return email.trim();
+            return resolveName();
+        }
+    }
+
+    public record LoginRequest(String email, String username, String password) {
+        public LoginRequest(String email, String password) {
+            this(email, null, password);
+        }
+
+        public String resolveIdentifier() {
+            if (email != null && !email.isBlank()) return email.trim();
+            if (username != null && !username.isBlank()) return username.trim();
+            return "";
+        }
+    }
     public record ProfileUpdateRequest(String name, String bio, String location, String website,
                                        Boolean notifEmail, Boolean notifSms, Boolean notifResults) {}
     public record PasswordChangeRequest(String currentPassword, String newPassword) {}
