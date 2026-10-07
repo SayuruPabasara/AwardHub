@@ -52,6 +52,7 @@ export default function Sidebar({ collapsed }) {
       { path: '/organizer/nominations', label: 'Nominations', icon: FileText },
       { path: '/organizer/judges', label: 'Judge Assignments', icon: ClipboardCheck },
       { path: '/organizer/votes', label: 'Live Votes', icon: Vote },
+      { path: '/organizer/results', label: 'Results & Publication', icon: Trophy },
       { path: '/organizer/reports', label: 'Reports & Analytics', icon: BarChart3 },
       { path: '/organizer/feedback', label: 'Feedback Inbox', icon: Inbox },
       { path: '/organizer/audit', label: 'Audit Trail', icon: ShieldCheck },

@@ -51,6 +51,7 @@ public class User {
     @Column(unique = true, nullable = false)
     private String email;
 
+    @lombok.ToString.Exclude
     private String password;
 
     @Enumerated(EnumType.STRING)

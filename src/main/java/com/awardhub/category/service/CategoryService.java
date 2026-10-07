@@ -38,6 +38,7 @@ public class CategoryService {
     private final CategoryCriterionRepository criterionRepository;
     private final CategoryJudgeRepository categoryJudgeRepository;
     private final UserRepository userRepository;
+    private final com.awardhub.evaluation.repository.JudgeAssignmentRepository judgeAssignmentRepository;
 
     // In-memory award event dictionary for integration readiness
     private static final Map<Long, String> KNOWN_EVENTS = new LinkedHashMap<>();
@@ -52,12 +53,14 @@ public class CategoryService {
             CategoryRepository categoryRepository,
             CategoryCriterionRepository criterionRepository,
             CategoryJudgeRepository categoryJudgeRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            com.awardhub.evaluation.repository.JudgeAssignmentRepository judgeAssignmentRepository
     ) {
         this.categoryRepository = categoryRepository;
         this.criterionRepository = criterionRepository;
         this.categoryJudgeRepository = categoryJudgeRepository;
         this.userRepository = userRepository;
+        this.judgeAssignmentRepository = judgeAssignmentRepository;
     }
 
     private String getAwardEventName(Long eventId) {
@@ -417,9 +420,42 @@ public class CategoryService {
             throw new DuplicateResourceException("Judge '" + judge.getFullName() + "' is already assigned to category '" + category.getName() + "'.");
         }
 
-        CategoryJudge assignment = new CategoryJudge(category, judge, assignedBy != null ? assignedBy : "Award Organizer");
+        String safeAssignedBy = assignedBy;
+        if (safeAssignedBy != null && safeAssignedBy.contains("User(") && safeAssignedBy.contains("email=")) {
+            int start = safeAssignedBy.indexOf("email=") + 6;
+            int end = safeAssignedBy.indexOf(",", start);
+            if (end > start) safeAssignedBy = safeAssignedBy.substring(start, end).trim();
+            else safeAssignedBy = "Award Organizer";
+        }
+        if (safeAssignedBy != null && safeAssignedBy.length() > 90) {
+            safeAssignedBy = safeAssignedBy.substring(0, 90);
+        }
+        if (safeAssignedBy == null || safeAssignedBy.isBlank()) {
+            safeAssignedBy = "Award Organizer";
+        }
+
+        CategoryJudge assignment = new CategoryJudge(category, judge, safeAssignedBy);
         CategoryJudge saved = categoryJudgeRepository.save(assignment);
         log.info("Successfully assigned judge id: {} to category id: {}", judgeId, categoryId);
+
+        // Dual-bridge to evaluation module:
+        judgeAssignmentRepository.findByCategoryIdAndJudgeId(categoryId, judgeId).ifPresentOrElse(
+                existing -> {
+                    existing.setStatus(com.awardhub.evaluation.model.AssignmentStatus.ASSIGNED);
+                    existing.setJudgeName(judge.getFullName());
+                    existing.setAssignedAt(LocalDateTime.now());
+                    judgeAssignmentRepository.save(existing);
+                },
+                () -> {
+                    com.awardhub.evaluation.model.JudgeAssignment ja = new com.awardhub.evaluation.model.JudgeAssignment();
+                    ja.setCategoryId(categoryId);
+                    ja.setJudgeId(judgeId);
+                    ja.setJudgeName(judge.getFullName());
+                    ja.setStatus(com.awardhub.evaluation.model.AssignmentStatus.ASSIGNED);
+                    ja.setAssignedAt(LocalDateTime.now());
+                    judgeAssignmentRepository.save(ja);
+                }
+        );
 
         return new JudgeResponse(saved.getId(), judge.getId(), judge.getEmail(), judge.getFullName(), saved.getAssignedAt(), saved.getAssignedBy());
     }
@@ -432,6 +468,14 @@ public class CategoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Judge assignment not found for category id: " + categoryId + " and judge id: " + judgeId));
 
         categoryJudgeRepository.delete(assignment);
+
+        // Dual-bridge: mark revoked in evaluation module
+        judgeAssignmentRepository.findByCategoryIdAndJudgeId(categoryId, judgeId).ifPresent(ja -> {
+            ja.setStatus(com.awardhub.evaluation.model.AssignmentStatus.REVOKED);
+            ja.setConflictNote("Removed by organizer from category panel.");
+            judgeAssignmentRepository.save(ja);
+        });
+
         log.info("Successfully removed judge id: {} from category id: {}", judgeId, categoryId);
     }
 

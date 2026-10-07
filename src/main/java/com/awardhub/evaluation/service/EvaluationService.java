@@ -35,6 +35,7 @@ public class EvaluationService {
     private final ScoringEngine engine;
     private final AuditService audit;
     private final JudgeAssignmentService assignmentService;
+    private final com.awardhub.category.repository.CategoryJudgeRepository categoryJudges;
 
     public EvaluationService(EvaluationRepository evaluations,
                              JudgeAssignmentRepository assignments,
@@ -43,7 +44,8 @@ public class EvaluationService {
                              NominationPort nominations,
                              ScoringEngine engine,
                              AuditService audit,
-                             JudgeAssignmentService assignmentService) {
+                             JudgeAssignmentService assignmentService,
+                             com.awardhub.category.repository.CategoryJudgeRepository categoryJudges) {
         this.evaluations = evaluations;
         this.assignments = assignments;
         this.rubrics = rubrics;
@@ -52,6 +54,7 @@ public class EvaluationService {
         this.engine = engine;
         this.audit = audit;
         this.assignmentService = assignmentService;
+        this.categoryJudges = categoryJudges;
     }
 
     public static List<EvaluationStatus> countedStatuses() { return COUNTED; }
@@ -60,6 +63,24 @@ public class EvaluationService {
 
     /** Every approved nomination in the categories this judge is assigned to, with progress. */
     public List<JudgeTaskResponse> worklist(Long judgeId) {
+        if (categoryJudges != null) {
+            try {
+                for (com.awardhub.category.entity.CategoryJudge cj : categoryJudges.findByJudgeId(judgeId)) {
+                    Long catId = cj.getCategory().getId();
+                    if (assignments.findByCategoryIdAndJudgeId(catId, judgeId).isEmpty()) {
+                        JudgeAssignment ja = new JudgeAssignment();
+                        ja.setCategoryId(catId);
+                        ja.setJudgeId(judgeId);
+                        ja.setJudgeName(cj.getJudge() != null ? cj.getJudge().getFullName() : "Judge #" + judgeId);
+                        ja.setStatus(AssignmentStatus.ASSIGNED);
+                        ja.setAssignedAt(cj.getAssignedAt() != null ? cj.getAssignedAt() : LocalDateTime.now());
+                        assignments.save(ja);
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
         List<JudgeTaskResponse> tasks = new ArrayList<>();
 
         for (JudgeAssignment a : assignments.findByJudgeIdAndStatusNot(judgeId, AssignmentStatus.REVOKED)) {
@@ -158,23 +179,38 @@ public class EvaluationService {
         evaluation.setComments(request.getComments());
         evaluation.setUpdatedAt(LocalDateTime.now());
 
-        evaluation.getScores().clear();
-        Map<Long, BigDecimal> raw = new LinkedHashMap<>();
+        Map<Long, CriterionScore> existingByCriterion = new HashMap<>();
+        for (CriterionScore cs : evaluation.getScores()) {
+            existingByCriterion.put(cs.getCriterionId(), cs);
+        }
+
         Set<Long> validCriteria = new HashSet<>();
         for (RubricCriterion c : rubric.getCriteria()) validCriteria.add(c.getId());
+
+        Set<Long> handledCriterionIds = new HashSet<>();
+        Map<Long, BigDecimal> raw = new LinkedHashMap<>();
 
         for (CriterionScoreRequest s : request.getScores()) {
             if (!validCriteria.contains(s.getCriterionId())) {
                 throw new BusinessRuleException(
                         "Criterion " + s.getCriterionId() + " does not belong to the active rubric.");
             }
-            CriterionScore cs = new CriterionScore();
-            cs.setCriterionId(s.getCriterionId());
-            cs.setRawScore(s.getRawScore());
-            cs.setNote(s.getNote());
-            evaluation.addScore(cs);
+            handledCriterionIds.add(s.getCriterionId());
+            CriterionScore cs = existingByCriterion.get(s.getCriterionId());
+            if (cs != null) {
+                cs.setRawScore(s.getRawScore());
+                cs.setNote(s.getNote());
+            } else {
+                cs = new CriterionScore();
+                cs.setCriterionId(s.getCriterionId());
+                cs.setRawScore(s.getRawScore());
+                cs.setNote(s.getNote());
+                evaluation.addScore(cs);
+            }
             raw.put(s.getCriterionId(), s.getRawScore());
         }
+
+        evaluation.getScores().removeIf(cs -> !handledCriterionIds.contains(cs.getCriterionId()));
 
         if (request.isSubmit()) {
             Map<Long, BigDecimal> weights = new LinkedHashMap<>();
