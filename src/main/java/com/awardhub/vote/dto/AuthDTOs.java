@@ -75,16 +75,38 @@ public final class AuthDTOs {
     public record MessageResponse(String message) {}
 
     // ── IT Coordinator / admin account management ──
-
-    public record AdminUserDto(Long id, String fullName, String email, String nic, String role,
+ 
+    public record AdminUserDto(Long id, String username, String fullName, String email, String nic, String role,
                                String accountStatus, LocalDateTime registrationDate, LocalDateTime lastLogin) {
         public static AdminUserDto from(User u) {
-            return new AdminUserDto(u.getId(), u.getFullName(), u.getEmail(), u.getNic(),
+            String uname = u.getUsername();
+            if (uname == null || uname.isBlank()) {
+                uname = u.getEmail() != null ? u.getEmail().split("@")[0] : ("user_" + u.getId());
+            }
+            return new AdminUserDto(u.getId(), uname, u.getFullName(), u.getEmail(), u.getNic(),
                     u.getRole() != null ? u.getRole().name() : null,
                     u.getAccountStatus() != null ? u.getAccountStatus().name() : null,
                     u.getRegistrationDate(), u.getLastLogin());
         }
     }
 
-    public record UserCreateRequest(String name, String email, String password, String nic, String role) {}
+    public record UserCreateRequest(String name, String username, String email, String password, String nic, String role) {
+        public UserCreateRequest(String name, String email, String password, String nic, String role) {
+            this(name, null, email, password, nic, role);
+        }
+
+        public String resolveUsername() {
+            if (username != null && !username.isBlank()) return username.trim();
+            if (name != null && !name.isBlank()) return name.trim().toLowerCase().replaceAll("\\s+", "_");
+            if (email != null && !email.isBlank()) return email.trim();
+            return "user_" + System.currentTimeMillis();
+        }
+
+        public String resolveName() {
+            if (name != null && !name.isBlank()) return name.trim();
+            if (username != null && !username.isBlank()) return username.trim();
+            if (email != null && !email.isBlank()) return email.trim();
+            return "User";
+        }
+    }
 }

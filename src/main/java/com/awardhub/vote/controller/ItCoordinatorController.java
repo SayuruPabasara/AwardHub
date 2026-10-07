@@ -25,8 +25,8 @@ import java.util.List;
  *    at all despite creating accounts and issuing password resets.
  */
 @RestController
-@RequestMapping("/api/itcoordinator")
-@PreAuthorize("hasRole('IT_COORDINATOR')")
+@RequestMapping({"/api/itcoordinator", "/api/admin"})
+@PreAuthorize("hasAnyRole('IT_COORDINATOR', 'ADMIN')")
 public class ItCoordinatorController {
 
     private final AccountAdminService admin;
@@ -46,25 +46,31 @@ public class ItCoordinatorController {
         return u;
     }
 
-    @GetMapping("/accounts")
+    @GetMapping({"/accounts", "/users"})
     public List<AdminUserDto> accounts() {
         return admin.listUsers();
     }
 
-    @PostMapping("/accounts")
+    @PostMapping({"/accounts", "/users"})
     public AdminUserDto create(@RequestBody UserCreateRequest body, HttpServletRequest http) {
         return admin.createUser(body, currentUser(), ip(http));
     }
 
-    @PostMapping("/accounts/{id}/reset-password")
+    @PostMapping({"/accounts/{id}/reset-password", "/users/{id}/reset-password"})
     public MessageResponse resetPassword(@PathVariable Long id, HttpServletRequest http) {
         String temp = admin.resetPassword(id, currentUser(), ip(http));
         return new MessageResponse("Temporary password issued: " + temp);
     }
 
-    @PostMapping("/accounts/{id}/deactivate")
+    @PostMapping({"/accounts/{id}/deactivate", "/users/{id}/deactivate"})
     public MessageResponse deactivate(@PathVariable Long id, HttpServletRequest http) {
         admin.deactivate(id, currentUser(), ip(http));
         return new MessageResponse("Account deactivated.");
+    }
+
+    @PostMapping({"/accounts/{id}/activate", "/users/{id}/activate"})
+    public MessageResponse activate(@PathVariable Long id, HttpServletRequest http) {
+        admin.activate(id, currentUser(), ip(http));
+        return new MessageResponse("Account activated.");
     }
 }
