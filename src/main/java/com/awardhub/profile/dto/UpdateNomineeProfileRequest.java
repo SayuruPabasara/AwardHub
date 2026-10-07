@@ -5,10 +5,16 @@ import jakarta.validation.constraints.Size;
 
 public class UpdateNomineeProfileRequest {
 
+    @Size(max = 100, message = "Full name must be at most 100 characters")
+    private String fullName;
+
+    @Size(max = 255, message = "Website must be at most 255 characters")
+    private String website;
+
     @Pattern(regexp = "^[0-9+()\\-\\s]{7,20}$", message = "Invalid contact number format")
     private String contactNumber;
 
-    @Size(max = 20, message = "NIC/Passport must be at most 20 characters")
+    @Pattern(regexp = "^$|^[A-Za-z0-9\\-]{5,20}$", message = "NIC/Passport must be 5-20 alphanumeric characters or hyphens")
     private String nicPassport;
 
     private String dateOfBirth;
@@ -47,6 +53,22 @@ public class UpdateNomineeProfileRequest {
     public UpdateNomineeProfileRequest() {}
 
     // Getters and Setters
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getWebsite() {
+        return website;
+    }
+
+    public void setWebsite(String website) {
+        this.website = website;
+    }
 
     public String getContactNumber() {
         return contactNumber;

@@ -32,9 +32,41 @@ public class NomineeProfileService {
         Nominee nominee = nomineeRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Nominee profile not found for ID: " + userId));
 
-        if (req.getContactNumber() != null) nominee.setContactNumber(req.getContactNumber());
-        if (req.getNicPassport() != null) nominee.setNicPassport(req.getNicPassport());
-        if (req.getDateOfBirth() != null) nominee.setDateOfBirth(req.getDateOfBirth());
+        if (req.getFullName() != null) {
+            String name = req.getFullName().trim();
+            if (!name.isEmpty()) {
+                nominee.setFullName(name);
+            }
+        }
+        if (req.getWebsite() != null) {
+            nominee.setWebsite(req.getWebsite().trim());
+        }
+        if (req.getContactNumber() != null) {
+            nominee.setContactNumber(req.getContactNumber().trim());
+        }
+        if (req.getNicPassport() != null) {
+            String nic = req.getNicPassport().trim();
+            if (!nic.isEmpty() && !nic.matches("^[A-Za-z0-9\\-]{5,20}$")) {
+                throw new IllegalArgumentException("Invalid NIC or Passport format (must be 5-20 alphanumeric characters or hyphens)");
+            }
+            nominee.setNicPassport(nic);
+        }
+        if (req.getDateOfBirth() != null && !req.getDateOfBirth().trim().isEmpty()) {
+            String dobStr = req.getDateOfBirth().trim();
+            try {
+                java.time.LocalDate dob = java.time.LocalDate.parse(dobStr);
+                java.time.LocalDate today = java.time.LocalDate.now();
+                if (!dob.isBefore(today)) {
+                    throw new IllegalArgumentException("Date of birth must be a past date");
+                }
+                if (dob.isAfter(today.minusYears(18))) {
+                    throw new IllegalArgumentException("Nominee must be at least 18 years of age");
+                }
+            } catch (java.time.format.DateTimeParseException e) {
+                throw new IllegalArgumentException("Invalid date of birth format. Please use YYYY-MM-DD");
+            }
+            nominee.setDateOfBirth(dobStr);
+        }
         if (req.getGender() != null) nominee.setGender(req.getGender());
         if (req.getStreet() != null) nominee.setStreet(req.getStreet());
         if (req.getCity() != null) nominee.setCity(req.getCity());
