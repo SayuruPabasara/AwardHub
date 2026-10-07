@@ -62,7 +62,11 @@ export default function JudgeRankingsPage() {
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: 700 }}>
             {rank === 1 ? (
-              <Medal size={20} style={{ color: '#f59e0b' }} />
+              <Medal size={20} style={{ color: 'var(--medal-gold)' }} />
+            ) : rank === 2 ? (
+              <Medal size={20} style={{ color: 'var(--medal-silver)' }} />
+            ) : rank === 3 ? (
+              <Medal size={20} style={{ color: 'var(--medal-bronze)' }} />
             ) : (
               `#${rank || '—'}`
             )}
@@ -84,8 +88,9 @@ export default function JudgeRankingsPage() {
                 marginLeft: '0.5rem',
                 fontSize: '0.7rem',
                 fontWeight: 700,
-                color: '#f59e0b',
-                background: 'rgba(245, 158, 11, 0.1)',
+                color: 'var(--accent-gold-text)',
+                background: 'var(--accent-gold-soft)',
+                border: '1px solid color-mix(in srgb, var(--accent-gold) 35%, transparent)',
                 padding: '1px 6px',
                 borderRadius: '4px',
               }}

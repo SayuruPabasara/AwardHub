@@ -154,13 +154,33 @@ public class CategoryController {
     public ResponseEntity<ApiResponse<JudgeResponse>> assignJudge(
             @PathVariable Long id,
             @Valid @RequestBody JudgeAssignmentRequest request,
-            Principal principal
+            org.springframework.security.core.Authentication authentication
     ) {
-        String assignedBy = principal != null ? principal.getName() : "Award Organizer";
+        String assignedBy = resolveActorName(authentication);
         JudgeResponse response = categoryService.assignJudge(id, request.getJudgeId(), assignedBy);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Judge assigned to category successfully", response));
+    }
+
+    private String resolveActorName(org.springframework.security.core.Authentication authentication) {
+        if (authentication == null) return "Award Organizer";
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof com.awardhub.user.entity.User user) {
+            if (user.getFullName() != null && !user.getFullName().isBlank()) return user.getFullName();
+            if (user.getEmail() != null && !user.getEmail().isBlank()) return user.getEmail();
+            if (user.getUsername() != null && !user.getUsername().isBlank()) return user.getUsername();
+        }
+        String name = authentication.getName();
+        if (name != null && !name.isBlank()) {
+            if (name.contains("User(") && name.contains("email=")) {
+                int start = name.indexOf("email=") + 6;
+                int end = name.indexOf(",", start);
+                if (end > start) return name.substring(start, end).trim();
+            }
+            return name.length() > 80 ? name.substring(0, 80) : name;
+        }
+        return "Award Organizer";
     }
 
     /**

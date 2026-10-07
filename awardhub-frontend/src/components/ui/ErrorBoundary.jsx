@@ -28,8 +28,8 @@ export default class ErrorBoundary extends React.Component {
             justifyContent: 'center',
             padding: '2rem',
             textAlign: 'center',
-            background: 'var(--bg-primary, #0B0F1A)',
-            color: 'var(--text-primary, #F1F5F9)',
+            background: 'var(--bg-primary, #F7F4EC)',
+            color: 'var(--text-primary, #16182A)',
           }}
         >
           <div
@@ -37,8 +37,8 @@ export default class ErrorBoundary extends React.Component {
               width: 64,
               height: 64,
               borderRadius: '50%',
-              background: 'rgba(239, 68, 68, 0.1)',
-              color: '#EF4444',
+              background: 'var(--status-error-soft, rgba(178, 58, 58, 0.1))',
+              color: 'var(--status-error, #B23A3A)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -52,7 +52,7 @@ export default class ErrorBoundary extends React.Component {
           </h2>
           <p
             style={{
-              color: 'var(--text-muted, #94A3B8)',
+              color: 'var(--text-muted, #5F6375)',
               maxWidth: 500,
               marginBottom: '1.5rem',
               fontSize: '0.9rem',

@@ -2,8 +2,22 @@ import api from './client';
 
 export const categoriesApi = {
   /* Public & General List */
-  list: (params = '') => api.get(`/categories${params ? '?' + params : ''}`),
-  listPublic: (params = '') => api.get(`/categories${params ? '?' + params : ''}`),
+  list: async (params = '') => {
+    const res = await api.get(`/categories${params ? '?' + params : ''}`);
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.data?.content)) return res.data.content;
+    if (Array.isArray(res?.data)) return res.data;
+    if (Array.isArray(res?.content)) return res.content;
+    return res;
+  },
+  listPublic: async (params = '') => {
+    const res = await api.get(`/categories${params ? '?' + params : ''}`);
+    if (Array.isArray(res)) return res;
+    if (Array.isArray(res?.data?.content)) return res.data.content;
+    if (Array.isArray(res?.data)) return res.data;
+    if (Array.isArray(res?.content)) return res.content;
+    return res;
+  },
   getById: (id) => api.get(`/categories/${id}`),
   create: (data) => api.post('/categories', data),
   update: (id, data) => api.put(`/categories/${id}`, data),

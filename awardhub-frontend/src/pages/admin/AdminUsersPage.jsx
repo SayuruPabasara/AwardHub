@@ -18,6 +18,7 @@ export default function AdminUsersPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [createUserForm, setCreateUserForm] = useState({
     username: '',
+    name: '',
     email: '',
     password: '',
     role: 'VOTER',
@@ -32,9 +33,17 @@ export default function AdminUsersPage() {
     setLoading(true);
     try {
       const data = await adminApi.listUsers();
-      setUsers(Array.isArray(data) ? data : []);
+      const list = Array.isArray(data)
+        ? data
+        : (Array.isArray(data?.data)
+          ? data.data
+          : (Array.isArray(data?.content)
+            ? data.content
+            : []));
+      setUsers(list);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to load users:', err);
+      toast.error(err.message || 'Failed to fetch user accounts from database');
       setUsers([]);
     } finally {
       setLoading(false);
@@ -45,10 +54,16 @@ export default function AdminUsersPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await adminApi.createUser(createUserForm);
+      await adminApi.createUser({
+        username: createUserForm.username.trim(),
+        name: createUserForm.name?.trim() || createUserForm.username.trim(),
+        email: createUserForm.email.trim(),
+        password: createUserForm.password,
+        role: createUserForm.role,
+      });
       toast.success('User account created in database successfully');
       setModalOpen(false);
-      setCreateUserForm({ username: '', email: '', password: '', role: 'VOTER' });
+      setCreateUserForm({ username: '', name: '', email: '', password: '', role: 'VOTER' });
       loadUsers();
     } catch (err) {
       toast.error(err.message || 'Failed to create user');
@@ -57,10 +72,40 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleResetUserPassword = async (user) => {
+    if (!window.confirm(`Issue temporary password reset for ${user.username || user.email}?`)) return;
+    try {
+      const res = await adminApi.resetPassword(user.id);
+      toast.success(res?.message || 'Temporary password issued');
+    } catch (err) {
+      toast.error(err.message || 'Failed to reset password');
+    }
+  };
+
+  const handleToggleUserStatus = async (user, activate) => {
+    try {
+      if (activate) {
+        await adminApi.activateUser(user.id);
+        toast.success(`User #${user.id} activated`);
+      } else {
+        if (!window.confirm(`Deactivate account for ${user.username || user.email}?`)) return;
+        await adminApi.deactivateUser(user.id);
+        toast.success(`User #${user.id} deactivated`);
+      }
+      loadUsers();
+    } catch (err) {
+      toast.error(err.message || 'Failed to update user status');
+    }
+  };
+
   const filtered = users.filter((u) => {
+    const q = (search || '').toLowerCase();
     const matchesSearch =
-      (u.username || '').toLowerCase().includes(search.toLowerCase()) ||
-      (u.email || '').toLowerCase().includes(search.toLowerCase());
+      !q ||
+      (u.username || '').toLowerCase().includes(q) ||
+      (u.fullName || '').toLowerCase().includes(q) ||
+      (u.email || '').toLowerCase().includes(q) ||
+      String(u.id || '').includes(q);
     const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
     return matchesSearch && matchesRole;
   });
@@ -71,9 +116,9 @@ export default function AdminUsersPage() {
       label: 'Account Username',
       render: (val, row) => (
         <div>
-          <span style={{ fontWeight: 600 }}>{val}</span>
+          <span style={{ fontWeight: 600 }}>{val || row.fullName || row.email}</span>
           <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            User ID #{row.id}
+            User ID #{row.id} {row.fullName && row.fullName !== val ? `• ${row.fullName}` : ''}
           </span>
         </div>
       ),
@@ -92,6 +137,38 @@ export default function AdminUsersPage() {
       key: 'accountStatus',
       label: 'Account Status',
       render: (val) => <StatusBadge status={val || 'ACTIVE'} />,
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (_, row) => (
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleResetUserPassword(row)}
+          >
+            Reset Password
+          </Button>
+          {row.accountStatus === 'DEACTIVATED' ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleToggleUserStatus(row, true)}
+            >
+              Activate
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="danger"
+              onClick={() => handleToggleUserStatus(row, false)}
+            >
+              Deactivate
+            </Button>
+          )}
+        </div>
+      ),
     },
   ];
 
@@ -155,6 +232,8 @@ export default function AdminUsersPage() {
             <option value="JUDGE">JUDGE</option>
             <option value="NOMINEE">NOMINEE</option>
             <option value="VOTER">VOTER</option>
+            <option value="IT_COORDINATOR">IT_COORDINATOR</option>
+            <option value="AUDIT">AUDIT</option>
           </select>
         </div>
       </div>
@@ -206,6 +285,28 @@ export default function AdminUsersPage() {
                 outline: 'none',
               }}
               required
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.4rem' }}>
+              Full Name
+            </label>
+            <input
+              type="text"
+              value={createUserForm.name}
+              onChange={(e) => setCreateUserForm({ ...createUserForm, name: e.target.value })}
+              placeholder="e.g. Dr. Alex Morgan"
+              style={{
+                width: '100%',
+                padding: '0.65rem 1rem',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border-color)',
+                background: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                fontSize: '0.875rem',
+                outline: 'none',
+              }}
             />
           </div>
 
@@ -278,6 +379,8 @@ export default function AdminUsersPage() {
               <option value="ORGANIZER">ORGANIZER</option>
               <option value="JUDGE">JUDGE</option>
               <option value="ADMIN">ADMIN</option>
+              <option value="IT_COORDINATOR">IT_COORDINATOR</option>
+              <option value="AUDIT">AUDIT</option>
             </select>
           </div>
         </form>

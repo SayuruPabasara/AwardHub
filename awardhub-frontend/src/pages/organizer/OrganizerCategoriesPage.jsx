@@ -617,7 +617,7 @@ export default function OrganizerCategoriesPage() {
                     borderRadius: 'var(--radius-md)',
                     border: 'none',
                     background: active ? 'var(--accent-primary)' : 'var(--bg-tertiary)',
-                    color: active ? '#ffffff' : 'var(--text-secondary)',
+                    color: active ? 'var(--text-on-accent)' : 'var(--text-secondary)',
                     fontWeight: active ? 600 : 500,
                     fontSize: '0.8125rem',
                     cursor: 'pointer',
@@ -821,7 +821,7 @@ export default function OrganizerCategoriesPage() {
               {dateError && (
                 <div
                   style={{
-                    background: 'rgba(239, 68, 68, 0.1)',
+                    background: 'var(--status-error-soft)',
                     border: '1px solid var(--status-error)',
                     color: 'var(--status-error)',
                     padding: '0.75rem 1rem',

@@ -31,6 +31,7 @@ import OrganizerNominationsPage from './pages/organizer/OrganizerNominationsPage
 import OrganizerJudgesPage from './pages/organizer/OrganizerJudgesPage';
 import OrganizerLiveVotesPage from './pages/organizer/OrganizerLiveVotesPage';
 import OrganizerReportsPage from './pages/organizer/OrganizerReportsPage';
+import OrganizerResultsPage from './pages/organizer/OrganizerResultsPage';
 import OrganizerAuditPage from './pages/organizer/OrganizerAuditPage';
 
 // Judge Pages
@@ -91,6 +92,7 @@ export default function App() {
           <Route path="/organizer/nominations" element={<OrganizerNominationsPage />} />
           <Route path="/organizer/judges" element={<OrganizerJudgesPage />} />
           <Route path="/organizer/votes" element={<OrganizerLiveVotesPage />} />
+          <Route path="/organizer/results" element={<OrganizerResultsPage />} />
           <Route path="/organizer/reports" element={<OrganizerReportsPage />} />
           <Route path="/organizer/feedback" element={<OrganizerFeedbackPage />} />
           <Route path="/organizer/audit" element={<OrganizerAuditPage />} />

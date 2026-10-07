@@ -59,6 +59,11 @@ public class AccountAdminService {
         if (req.password() == null || req.password().length() < 6) throw new BadRequestException("Password must be at least 6 characters.");
         if (users.existsByEmailIgnoreCase(req.email())) throw new BadRequestException("Email already in use.");
 
+        String chosenUsername = req.resolveUsername();
+        if (chosenUsername != null && users.existsByUsernameIgnoreCase(chosenUsername)) {
+            throw new BadRequestException("Username already in use.");
+        }
+
         Role role;
         try {
             role = Role.valueOf(req.role().toUpperCase(Locale.ROOT));
@@ -67,8 +72,8 @@ public class AccountAdminService {
         }
 
         User u = new User();
-        u.setUsername(req.email().trim());
-        u.setFullName(req.name());
+        u.setUsername(chosenUsername);
+        u.setFullName(req.resolveName());
         u.setEmail(req.email().trim());
         u.setPassword(encoder.encode(req.password()));
         u.setNic(req.nic());
@@ -87,7 +92,7 @@ public class AccountAdminService {
         String temp = "Reset-" + UUID.randomUUID().toString().substring(0, 8);
         u.setPassword(encoder.encode(temp));
         users.save(u);
-        audit.log(actor.getId(), "PASSWORD_RESET", "User", id, "Temporary password issued by IT Coordinator");
+        audit.log(actor.getId(), "PASSWORD_RESET", "User", id, "Temporary password issued by Administrator");
         return temp;
     }
 
@@ -96,7 +101,15 @@ public class AccountAdminService {
         User u = findUser(id);
         u.setAccountStatus(AccountStatus.DEACTIVATED);
         users.save(u);
-        audit.log(actor.getId(), "ACCOUNT_DEACTIVATED", "User", id, "Deactivated by IT Coordinator from IP " + ip);
+        audit.log(actor.getId(), "ACCOUNT_DEACTIVATED", "User", id, "Deactivated by Administrator from IP " + ip);
+    }
+
+    @Transactional
+    public void activate(Long id, User actor, String ip) {
+        User u = findUser(id);
+        u.setAccountStatus(AccountStatus.ACTIVE);
+        users.save(u);
+        audit.log(actor.getId(), "ACCOUNT_ACTIVATED", "User", id, "Activated by Administrator from IP " + ip);
     }
 
     private User findUser(Long id) {

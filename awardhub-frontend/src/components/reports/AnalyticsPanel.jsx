@@ -21,8 +21,8 @@ import StatCard from '../ui/StatCard';
 import { formatDateTime, formatNumber } from '../../utils/formatters';
 import { unwrapList } from '../../utils/reportHelpers';
 import styles from './reports.module.css';
+import { useChartPalette, chartTooltipStyle } from '../../utils/chartPalette';
 
-const LINE_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6', '#ef4444', '#84cc16'];
 const EMPTY_FORM = { metricName: '', metricValue: '', categoryId: '' };
 
 /**
@@ -30,6 +30,7 @@ const EMPTY_FORM = { metricName: '', metricValue: '', categoryId: '' };
  * (getAll, getByMetric, getByCategory, record, delete).
  */
 export default function AnalyticsPanel({ categories = [], categoryMap = {} }) {
+  const palette = useChartPalette();
   const [snapshots, setSnapshots] = useState([]);
   const [allMetricNames, setAllMetricNames] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -231,24 +232,17 @@ export default function AnalyticsPanel({ categories = [], categoryMap = {} }) {
           <div className={styles.chartWrap}>
             <ResponsiveContainer>
               <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} minTickGap={24} />
-                <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} />
-                <Tooltip
-                  contentStyle={{
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: 8,
-                    fontSize: 12,
-                  }}
-                />
+                <CartesianGrid strokeDasharray="3 3" stroke={palette.grid} vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 11, fill: palette.axis }} stroke={palette.grid} minTickGap={24} />
+                <YAxis tick={{ fontSize: 11, fill: palette.axis }} stroke={palette.grid} />
+                <Tooltip contentStyle={{ ...chartTooltipStyle, fontSize: 12 }} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 {chartMetrics.map((m, i) => (
                   <Line
                     key={m}
                     type="monotone"
                     dataKey={m}
-                    stroke={LINE_COLORS[i % LINE_COLORS.length]}
+                    stroke={palette.series[i % palette.series.length]}
                     strokeWidth={2.5}
                     dot={{ r: 3 }}
                     activeDot={{ r: 6 }}

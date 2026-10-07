@@ -16,6 +16,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     // collide for duplicate-detection purposes).
     Optional<User> findByEmailIgnoreCase(String email);
     boolean existsByEmailIgnoreCase(String email);
+    boolean existsByUsernameIgnoreCase(String username);
 
     // NIC uniqueness, used at registration and for duplicate-vote prevention.
     boolean existsByNicIgnoreCase(String nic);

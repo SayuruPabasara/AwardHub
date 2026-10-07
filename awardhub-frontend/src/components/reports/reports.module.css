@@ -59,12 +59,12 @@
 
 .tabActive {
   background: var(--accent-gradient);
-  color: #fff;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+  color: var(--text-on-accent);
+  box-shadow: var(--shadow-accent);
 }
 
 .tabActive:hover {
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 /* ---------- Filter chips ---------- */
@@ -210,7 +210,7 @@
 }
 
 .starOn {
-  color: #f59e0b;
+  color: var(--accent-gold);
 }
 
 /* ---------- Table cells ---------- */
@@ -342,7 +342,7 @@
 
 .fbCard:hover {
   border-color: var(--accent-primary);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.08);
+  box-shadow: var(--shadow-md);
 }
 
 .fbHead {
