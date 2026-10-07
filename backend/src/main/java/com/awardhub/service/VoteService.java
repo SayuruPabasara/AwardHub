@@ -94,8 +94,59 @@ public class VoteService {
     }
 
     @Transactional
-    public void withdraw(Long votingId, User actor, String ip) {
+    public VoteDto changeVote(Long votingId, VoteRequest req, User actor, String ip) {
+        Voting voting = votings.findById(votingId)
+                .orElseThrow(() -> new NotFoundException("Voting not found: " + votingId));
+
+        LocalDate today = LocalDate.now();
+        if (voting.getVotingStart() != null && today.isBefore(voting.getVotingStart())) {
+            throw new BadRequestException("Voting has not opened yet for this category.");
+        }
+        if (voting.getVotingEnd() != null && today.isAfter(voting.getVotingEnd())) {
+            throw new BadRequestException("Voting has closed for this category.");
+        }
+        if (req.nic() == null || req.nic().isBlank()) {
+            throw new BadRequestException("NIC verification is required to vote.");
+        }
+        String nic = req.nic().trim().toUpperCase();
+        if (!nic.equalsIgnoreCase(actor.getNic())) {
+            audit.log(actor, "VOTE_ATTEMPT", "voting-" + votingId, "NIC mismatch during vote change attempt", ip, true);
+            throw new BadRequestException("NIC does not match the NIC registered to your account.");
+        }
+
         Vote vote = votes.findByVoterIdAndVotingId(actor.getId(), votingId)
+                .orElseThrow(() -> new NotFoundException("You have not voted in this voting yet."));
+
+        Nomination nomination = nominations.findById(req.nominationId())
+                .orElseThrow(() -> new NotFoundException("Nomination not found: " + req.nominationId()));
+        if (!nomination.getVoting().getId().equals(votingId)) {
+            throw new BadRequestException("This nomination does not belong to the selected voting.");
+        }
+        if (nomination.getStatus() != Nomination.Status.approved) {
+            throw new BadRequestException("Votes can only be cast for approved nominations.");
+        }
+        if (nomination.getId().equals(vote.getNomination().getId())) {
+            return VoteDto.from(vote); // idempotent: already voting for this nominee
+        }
+
+        Nomination previous = vote.getNomination();
+        previous.setVoteCount(Math.max(0, previous.getVoteCount() - 1));
+        nominations.save(previous);
+
+        vote.setNomination(nomination);
+        vote.setNic(nic);
+        votes.save(vote);
+
+        nomination.setVoteCount(nomination.getVoteCount() + 1);
+        nominations.save(nomination);
+
+        audit.log(actor, "VOTE_CHANGED", "voting-" + votingId + " / " + nomination.getNomineeName(),
+                "Vote changed from " + previous.getNomineeName() + " to " + nomination.getNomineeName() + ". NIC verified: " + actor.getNic(), ip, false);
+        return VoteDto.from(vote);
+    }
+
+    @Transactional
+    public void withdraw(Long votingId, User actor, String ip) {        Vote vote = votes.findByVoterIdAndVotingId(actor.getId(), votingId)
                 .orElseThrow(() -> new NotFoundException("You have not voted in this voting."));
         Nomination nomination = vote.getNomination();
         votes.delete(vote);

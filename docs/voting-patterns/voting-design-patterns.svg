@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8" fill="none" stroke="#424242" stroke-width="1.5"/>
+    </marker>
+    <marker id="arrowOpen" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <path d="M0,0 L10,4 L0,8" fill="none" stroke="#7b1fa2" stroke-width="1.5" stroke-dasharray="3,2"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1200" height="720" fill="#ffffff"/>
+  <text x="40" y="30" font-size="18" font-weight="bold" fill="#212121">Voting Management — Design Patterns (AwardHub)</text>
+  <text x="40" y="50" font-size="11" fill="#616161">Backend: pattern/voting/*.java + VotingService/Controller · Frontend: src/patterns/* + VotingPatternPanel + VotingsListPage</text>
+
+  <!-- Backend column -->
+  <rect x="30" y="65" width="540" height="620" rx="10" fill="#fafafa" stroke="#bdbdbd"/>
+  <text x="50" y="90" font-size="13" font-weight="bold" fill="#212121">BACKEND</text>
+
+  <g font-size="11">
+    <rect x="50" y="100" width="245" height="66" rx="6" fill="#e1f5fe" stroke="#0288d1"/>
+    <text x="60" y="120" font-weight="bold" fill="#01579b">VotingFactory (Factory)</text>
+    <text x="60" y="137" fill="#37474f">+ create(req): Voting</text>
+    <text x="60" y="152" fill="#37474f">+ apply(v, req)</text>
+
+    <rect x="305" y="100" width="245" height="66" rx="6" fill="#fff3e0" stroke="#ef6c00"/>
+    <text x="315" y="120" font-weight="bold" fill="#e65100">VotingManager (Singleton)</text>
+    <text x="315" y="137" fill="#37474f">+ getInstance(): VotingManager</text>
+    <text x="315" y="152" fill="#37474f">+ newVoting(req)</text>
+
+    <rect x="50" y="178" width="245" height="82" rx="6" fill="#e8f5e9" stroke="#2e7d32"/>
+    <text x="60" y="198" font-weight="bold" fill="#1b5e20">WinnerStrategy «interface»</text>
+    <text x="60" y="215" fill="#37474f">+ key(): String</text>
+    <text x="60" y="230" fill="#37474f">+ pickWinner(voting, approved)</text>
+    <text x="60" y="245" fill="#37474f">(Strategy)</text>
+
+    <rect x="305" y="178" width="245" height="52" rx="6" fill="#e8f5e9" stroke="#2e7d32"/>
+    <text x="315" y="198" font-weight="bold" fill="#1b5e20">PopularVoteWinnerStrategy</text>
+    <text x="315" y="215" fill="#37474f">max voteCount</text>
+
+    <rect x="50" y="270" width="245" height="52" rx="6" fill="#e8f5e9" stroke="#2e7d32"/>
+    <text x="60" y="290" font-weight="bold" fill="#1b5e20">JudgeScoreWinnerStrategy</text>
+    <text x="60" y="307" fill="#37474f">max judgeScore</text>
+
+    <rect x="305" y="270" width="245" height="66" rx="6" fill="#e8f5e9" stroke="#2e7d32"/>
+    <text x="315" y="290" font-weight="bold" fill="#1b5e20">WinnerStrategyContext</text>
+    <text x="315" y="307" fill="#37474f">+ strategy(mode)</text>
+    <text x="315" y="322" fill="#37474f">+ resolveWinner(...)</text>
+
+    <rect x="50" y="346" width="245" height="66" rx="6" fill="#f3e5f5" stroke="#7b1fa2"/>
+    <text x="60" y="366" font-weight="bold" fill="#4a148c">VotingObserver «interface»</text>
+    <text x="60" y="383" fill="#37474f">+ onVotingChanged(...)</text>
+    <text x="60" y="398" fill="#37474f">(Observer)</text>
+
+    <rect x="305" y="346" width="245" height="66" rx="6" fill="#f3e5f5" stroke="#7b1fa2"/>
+    <text x="315" y="366" font-weight="bold" fill="#4a148c">VotingSubject</text>
+    <text x="315" y="383" fill="#37474f">+ add/removeObserver</text>
+    <text x="315" y="398" fill="#37474f">+ notifyObservers(...)</text>
+
+    <rect x="50" y="424" width="245" height="52" rx="6" fill="#f3e5f5" stroke="#7b1fa2"/>
+    <text x="60" y="444" font-weight="bold" fill="#4a148c">AuditVotingObserver</text>
+    <text x="60" y="461" fill="#37474f">→ audit.log()</text>
+
+    <rect x="305" y="424" width="245" height="66" rx="6" fill="#eeeeee" stroke="#616161"/>
+    <text x="315" y="444" font-weight="bold" fill="#212121">VotingService</text>
+    <text x="315" y="461" fill="#37474f">create/update/delete + notify</text>
+    <text x="315" y="476" fill="#37474f">resolveWinner(id, mode)</text>
+
+    <rect x="160" y="502" width="260" height="60" rx="6" fill="#eeeeee" stroke="#616161"/>
+    <text x="170" y="522" font-weight="bold" fill="#212121">VotingController</text>
+    <text x="170" y="539" fill="#37474f">GET /votings/{id}/winner?mode=</text>
+    <text x="170" y="554" fill="#37474f">popular | judge</text>
+  </g>
+
+  <!-- Frontend column -->
+  <rect x="600" y="65" width="570" height="620" rx="10" fill="#fafafa" stroke="#bdbdbd"/>
+  <text x="620" y="90" font-size="13" font-weight="bold" fill="#212121">FRONTEND (UI uses patterns)</text>
+
+  <g font-size="11">
+    <rect x="620" y="100" width="260" height="96" rx="6" fill="#e8f5e9" stroke="#2e7d32"/>
+    <text x="630" y="120" font-weight="bold" fill="#1b5e20">votingSortStrategy (Strategy)</text>
+    <text x="630" y="137" fill="#37474f">EndingSoon / MostVotes /</text>
+    <text x="630" y="152" fill="#37474f">MostNominees / Name</text>
+    <text x="630" y="167" fill="#37474f">+ sortVotingList(list, key)</text>
+    <text x="630" y="182" fill="#37474f">runtime switch in UI</text>
+
+    <rect x="890" y="100" width="260" height="66" rx="6" fill="#e1f5fe" stroke="#0288d1"/>
+    <text x="900" y="120" font-weight="bold" fill="#01579b">VotingCardFactory (Factory)</text>
+    <text x="900" y="137" fill="#37474f">+ create(v, section): card</text>
+    <text x="900" y="152" fill="#37474f">live / upcoming / ended</text>
+
+    <rect x="620" y="208" width="260" height="82" rx="6" fill="#f3e5f5" stroke="#7b1fa2"/>
+    <text x="630" y="228" font-weight="bold" fill="#4a148c">VotingStore (Observer+Singleton)</text>
+    <text x="630" y="245" fill="#37474f">+ getInstance()</text>
+    <text x="630" y="260" fill="#37474f">+ subscribe / setVotings / notify</text>
+    <text x="630" y="275" fill="#37474f">shared UI cache</text>
+
+    <rect x="890" y="208" width="260" height="82" rx="6" fill="#fff8e1" stroke="#f9a825"/>
+    <text x="900" y="228" font-weight="bold" fill="#e65100">votingDecorator (Decorator)</text>
+    <text x="900" y="245" fill="#37474f">baseCard → withLivePulse</text>
+    <text x="900" y="260" fill="#37474f">→ withProgressBar</text>
+    <text x="900" y="275" fill="#37474f">composable wrappers</text>
+
+    <rect x="620" y="302" width="260" height="66" rx="6" fill="#eeeeee" stroke="#616161"/>
+    <text x="630" y="322" font-weight="bold" fill="#212121">VotingPatternPanel</text>
+    <text x="630" y="339" fill="#37474f">strategy dropdown + sub count</text>
+    <text x="630" y="354" fill="#37474f">proof strip on list page</text>
+
+    <rect x="890" y="302" width="260" height="66" rx="6" fill="#eeeeee" stroke="#616161"/>
+    <text x="900" y="322" font-weight="bold" fill="#212121">VotingsListPage</text>
+    <text x="900" y="339" fill="#37474f">uses all 5 patterns</text>
+    <text x="900" y="354" fill="#37474f">search + sort + cards</text>
+  </g>
+
+  <!-- Legend + flows -->
+  <g font-size="11" fill="#424242">
+    <text x="50" y="590" font-weight="bold">Flows:</text>
+    <text x="50" y="608">A. Create: Controller → Manager.getInstance().newVoting() → Factory.create() → save → Subject.notify → AuditObserver.log</text>
+    <text x="50" y="626">B. Winner: GET ?mode=judge → Context.strategy() → ConcreteStrategy.pickWinner()</text>
+    <text x="620" y="400" font-weight="bold">UI flow:</text>
+    <text x="620" y="418">api.votings() → store.setVotings() → sortVotingList() → Factory.create() → decorators → card</text>
+    <rect x="50" y="640" width="14" height="14" fill="#e1f5fe" stroke="#0288d1"/><text x="70" y="651">Factory</text>
+    <rect x="140" y="640" width="14" height="14" fill="#e8f5e9" stroke="#2e7d32"/><text x="160" y="651">Strategy</text>
+    <rect x="240" y="640" width="14" height="14" fill="#f3e5f5" stroke="#7b1fa2"/><text x="260" y="651">Observer</text>
+    <rect x="350" y="640" width="14" height="14" fill="#fff3e0" stroke="#ef6c00"/><text x="370" y="651">Singleton</text>
+    <rect x="460" y="640" width="14" height="14" fill="#fff8e1" stroke="#f9a825"/><text x="480" y="651">Decorator</text>
+  </g>
+</svg>

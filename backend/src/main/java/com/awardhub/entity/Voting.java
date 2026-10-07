@@ -60,7 +60,7 @@ public class Voting {
     private Nomination judgeWinner;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "head_organizer_id")
+    @JoinColumn(name = "head_organizer_id", unique = true)
     private User headOrganizer;
 
     @Column(name = "created_at", nullable = false)

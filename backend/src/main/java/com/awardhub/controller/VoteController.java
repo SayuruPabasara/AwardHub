@@ -29,6 +29,11 @@ public class VoteController {
         return votes.cast(id, body, CurrentUser.get(), ip(http));
     }
 
+    @PutMapping("/api/votings/{id}/votes")
+    public VoteDto change(@PathVariable Long id, @RequestBody VoteRequest body, HttpServletRequest http) {
+        return votes.changeVote(id, body, CurrentUser.get(), ip(http));
+    }
+
     @DeleteMapping("/api/votings/{id}/votes")
     public MessageResponse withdraw(@PathVariable Long id, HttpServletRequest http) {
         votes.withdraw(id, CurrentUser.get(), ip(http));
