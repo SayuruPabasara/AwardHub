@@ -137,8 +137,9 @@ export default function VoterResultsPage() {
                 }}
               >
                 {results.slice(0, 3).map((item, idx) => {
-                  const rankColors = ['#f59e0b', '#94a3b8', '#b45309'];
+                  const rankColors = ['var(--medal-gold)', 'var(--medal-silver)', 'var(--medal-bronze)'];
                   const rankLabels = ['1st Place Winner', '2nd Place Finalist', '3rd Place Finalist'];
+                  const medalColor = rankColors[idx] || 'var(--accent-primary)';
                   return (
                     <Card key={item.nominationId || idx} hoverable>
                       <div
@@ -153,11 +154,12 @@ export default function VoterResultsPage() {
                             width: 50,
                             height: 50,
                             borderRadius: '50%',
-                            background: rankColors[idx] ? `${rankColors[idx]}20` : 'var(--accent-soft)',
-                            color: rankColors[idx] || 'var(--accent-primary)',
+                            background: `color-mix(in srgb, ${medalColor} 18%, transparent)`,
+                            color: medalColor,
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            boxShadow: idx === 0 ? '0 0 16px var(--accent-gold-soft)' : 'none',
                           }}
                         >
                           <Medal size={28} />

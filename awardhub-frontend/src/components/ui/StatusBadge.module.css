@@ -7,6 +7,7 @@
   text-transform: capitalize;
   letter-spacing: 0.02em;
   width: fit-content;
+  border: 1px solid transparent;
 }
 
 .sm {
@@ -26,6 +27,9 @@
   background: currentColor;
 }
 
+/* Status colours come from theme tokens, which switch automatically
+   between light (deep, AA on ivory) and dark (soft, AA on ink). */
+
 /* Category & General Statuses */
 .ACTIVE,
 .APPROVED,
@@ -34,29 +38,16 @@
 .COMPLETED,
 .VERIFIED {
   background: var(--status-success-soft);
-  color: #059669;
-}
-
-[data-theme="dark"] .ACTIVE,
-[data-theme="dark"] .APPROVED,
-[data-theme="dark"] .PUBLISHED,
-[data-theme="dark"] .OPEN,
-[data-theme="dark"] .COMPLETED,
-[data-theme="dark"] .VERIFIED {
-  color: #34d399;
+  border-color: color-mix(in srgb, var(--status-success) 22%, transparent);
+  color: var(--status-success);
 }
 
 .DRAFT,
 .IN_PROGRESS,
 .UPCOMING {
   background: var(--status-info-soft);
-  color: #2563eb;
-}
-
-[data-theme="dark"] .DRAFT,
-[data-theme="dark"] .IN_PROGRESS,
-[data-theme="dark"] .UPCOMING {
-  color: #60a5fa;
+  border-color: color-mix(in srgb, var(--status-info) 22%, transparent);
+  color: var(--status-info);
 }
 
 .PENDING,
@@ -64,14 +55,8 @@
 .SUBMITTED,
 .PENDING_VERIFICATION {
   background: var(--status-warning-soft);
-  color: #d97706;
-}
-
-[data-theme="dark"] .PENDING,
-[data-theme="dark"] .UNDER_REVIEW,
-[data-theme="dark"] .SUBMITTED,
-[data-theme="dark"] .PENDING_VERIFICATION {
-  color: #fbbf24;
+  border-color: color-mix(in srgb, var(--status-warning) 22%, transparent);
+  color: var(--status-warning);
 }
 
 .REJECTED,
@@ -80,26 +65,14 @@
 .SUSPENDED,
 .INACTIVE {
   background: var(--status-error-soft);
-  color: #dc2626;
-}
-
-[data-theme="dark"] .REJECTED,
-[data-theme="dark"] .DISQUALIFIED,
-[data-theme="dark"] .CLOSED,
-[data-theme="dark"] .SUSPENDED,
-[data-theme="dark"] .INACTIVE {
-  color: #f87171;
+  border-color: color-mix(in srgb, var(--status-error) 22%, transparent);
+  color: var(--status-error);
 }
 
 .ARCHIVED,
 .WITHDRAWN,
 .DEFAULT {
   background: var(--status-neutral-soft);
-  color: #64748b;
-}
-
-[data-theme="dark"] .ARCHIVED,
-[data-theme="dark"] .WITHDRAWN,
-[data-theme="dark"] .DEFAULT {
-  color: #94a3b8;
+  border-color: color-mix(in srgb, var(--status-neutral) 22%, transparent);
+  color: var(--status-neutral);
 }

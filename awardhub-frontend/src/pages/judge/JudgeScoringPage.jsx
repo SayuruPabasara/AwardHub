@@ -371,9 +371,9 @@ export default function JudgeScoringPage() {
               gap: '0.5rem',
               padding: '0.5rem 0.875rem',
               borderRadius: 'var(--radius-md)',
-              background: 'rgba(59, 130, 246, 0.1)',
-              border: '1px solid rgba(59, 130, 246, 0.25)',
-              color: '#60A5FA',
+              background: 'var(--status-info-soft)',
+              border: '1px solid color-mix(in srgb, var(--status-info) 30%, transparent)',
+              color: 'var(--status-info)',
               fontSize: '0.825rem',
             }}
           >
@@ -438,8 +438,9 @@ export default function JudgeScoringPage() {
                               fontSize: '0.75rem',
                               padding: '0.125rem 0.5rem',
                               borderRadius: '999px',
-                              background: 'rgba(139, 92, 246, 0.15)',
-                              color: '#A78BFA',
+                              background: 'var(--accent-gold-soft)',
+                              color: 'var(--accent-gold-text)',
+                              border: '1px solid color-mix(in srgb, var(--accent-gold) 30%, transparent)',
                               fontWeight: 600,
                             }}
                           >

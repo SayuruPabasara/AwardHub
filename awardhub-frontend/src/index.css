@@ -1,63 +1,101 @@
 /* ============================================================
    AwardHub Design System — Global Styles & Theme Tokens
+   Theme: "Gala Ink & Gold"
+   Navy = action, Gold = honour. All text tokens meet WCAG AA.
    ============================================================ */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Fonts (Fraunces + Manrope) are loaded via <link> in index.html */
 
-/* ── Light Theme (default) ─────────────────────────────────── */
+/* ── Light Theme (default) — "Ivory" ───────────────────────── */
 :root {
+  /* Typography */
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-body: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
   /* Surfaces */
-  --bg-primary: #FAFBFE;
-  --bg-secondary: #FFFFFF;
-  --bg-tertiary: #F1F5F9;
-  --bg-sidebar: #FFFFFF;
-  --bg-topbar: rgba(255, 255, 255, 0.85);
-  --bg-card: #FFFFFF;
-  --bg-card-hover: #F8FAFC;
+  --bg-primary: #F7F4EC;
+  --bg-secondary: #FFFDF8;
+  --bg-tertiary: #EFEADF;
+  --bg-sidebar: #FFFDF8;
+  --bg-topbar: rgba(255, 253, 248, 0.88);
+  --bg-card: #FFFDF8;
+  --bg-card-hover: #FAF6EC;
   --bg-input: #FFFFFF;
-  --bg-overlay: rgba(15, 23, 42, 0.4);
-  --bg-modal: #FFFFFF;
+  --bg-overlay: rgba(22, 24, 42, 0.45);
+  --bg-modal: #FFFDF8;
 
   /* Text */
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #94A3B8;
-  --text-inverse: #FFFFFF;
-  --text-link: #6366F1;
+  --text-primary: #16182A;
+  --text-secondary: #454A5E;
+  --text-muted: #5F6375;
+  --text-inverse: #FFFDF8;
+  --text-link: #1B2A4A;
+  --text-on-accent: #FFFDF8;
 
-  /* Brand / Accent */
-  --accent-primary: #6366F1;
-  --accent-primary-hover: #4F46E5;
-  --accent-secondary: #8B5CF6;
-  --accent-gradient: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
-  --accent-gradient-hover: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-  --accent-soft: rgba(99, 102, 241, 0.08);
-  --accent-soft-hover: rgba(99, 102, 241, 0.14);
+  /* Brand / Accent — Ink navy for action */
+  --accent-primary: #1B2A4A;
+  --accent-primary-hover: #101B33;
+  --accent-secondary: #3A4E78;
+  --accent-gradient: linear-gradient(135deg, #1B2A4A 0%, #2A3D66 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #101B33 0%, #1F2F52 100%);
+  --accent-soft: rgba(27, 42, 74, 0.07);
+  --accent-soft-hover: rgba(27, 42, 74, 0.13);
+
+  /* Honour — Gold (decorative fills vs. readable text) */
+  --accent-gold: #C9A24A;
+  --accent-gold-text: #86661C;
+  --accent-gold-soft: rgba(201, 162, 74, 0.16);
+  --gold-gradient: linear-gradient(135deg, #E6C877 0%, #B8913A 100%);
+  --text-on-gold: #2A1F05;
+  --medal-gold: #C9A24A;
+  --medal-silver: #8E98A4;
+  --medal-bronze: #A8693A;
+  --brand-tile-bg: linear-gradient(145deg, #22345A 0%, #141F38 100%);
 
   /* Status Colors */
-  --status-success: #10B981;
-  --status-success-soft: rgba(16, 185, 129, 0.1);
-  --status-warning: #F59E0B;
-  --status-warning-soft: rgba(245, 158, 11, 0.1);
-  --status-error: #EF4444;
-  --status-error-soft: rgba(239, 68, 68, 0.1);
-  --status-info: #3B82F6;
-  --status-info-soft: rgba(59, 130, 246, 0.1);
-  --status-neutral: #64748B;
-  --status-neutral-soft: rgba(100, 116, 139, 0.1);
+  --status-success: #2F7D4F;
+  --status-success-hover: #246340;
+  --status-success-soft: rgba(47, 125, 79, 0.11);
+  --status-warning: #8F5509;
+  --status-warning-soft: rgba(160, 96, 15, 0.11);
+  --status-error: #B23A3A;
+  --status-error-hover: #932E2E;
+  --status-error-soft: rgba(178, 58, 58, 0.10);
+  --status-info: #2D5F8B;
+  --status-info-soft: rgba(45, 95, 139, 0.10);
+  --status-neutral: #5F6375;
+  --status-neutral-soft: rgba(95, 99, 117, 0.11);
+  --status-special: #6E4C6E;
+  --status-special-soft: rgba(110, 76, 110, 0.11);
+
+  /* Charts */
+  --chart-1: #1B2A4A;
+  --chart-2: #C9A24A;
+  --chart-3: #3E7C83;
+  --chart-4: #8C3B3B;
+  --chart-5: #6B8F71;
+  --chart-6: #A8693A;
+  --chart-7: #6C7A96;
+  --chart-8: #6E4C6E;
+  --chart-grid: #E4DDCD;
 
   /* Borders */
-  --border-color: #E2E8F0;
-  --border-color-strong: #CBD5E1;
-  --border-color-input: #D1D5DB;
-  --border-color-focus: #6366F1;
+  --border-color: #E4DDCD;
+  --border-color-strong: #CFC6B2;
+  --border-color-input: #CFC6B2;
+  --border-color-focus: #1B2A4A;
 
-  /* Shadows */
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-  --shadow-xl: 0 20px 50px -10px rgba(0, 0, 0, 0.12);
-  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.15);
+  /* Focus */
+  --focus-ring: 0 0 0 3px rgba(201, 162, 74, 0.45);
+
+  /* Shadows (warm neutral) */
+  --shadow-xs: 0 1px 2px rgba(40, 32, 16, 0.05);
+  --shadow-sm: 0 1px 3px rgba(40, 32, 16, 0.07), 0 1px 2px rgba(40, 32, 16, 0.04);
+  --shadow-md: 0 4px 8px -2px rgba(40, 32, 16, 0.08), 0 2px 4px -2px rgba(40, 32, 16, 0.05);
+  --shadow-lg: 0 12px 28px -6px rgba(40, 32, 16, 0.12), 0 4px 6px -4px rgba(40, 32, 16, 0.05);
+  --shadow-xl: 0 24px 56px -12px rgba(40, 32, 16, 0.18);
+  --shadow-glow: 0 0 0 1px rgba(201, 162, 74, 0.35), 0 6px 18px -6px rgba(201, 162, 74, 0.35);
+  --shadow-accent: 0 2px 8px rgba(27, 42, 74, 0.22);
+  --shadow-accent-hover: 0 6px 16px rgba(27, 42, 74, 0.28);
 
   /* Radius */
   --radius-sm: 6px;
@@ -77,53 +115,91 @@
   --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Scrollbar */
-  --scrollbar-bg: #F1F5F9;
-  --scrollbar-thumb: #CBD5E1;
-  --scrollbar-thumb-hover: #94A3B8;
+  --scrollbar-bg: #EFEADF;
+  --scrollbar-thumb: #CFC6B2;
+  --scrollbar-thumb-hover: #A99F88;
 }
 
-/* ── Dark Theme ────────────────────────────────────────────── */
+/* ── Dark Theme — "Gala Night" ─────────────────────────────── */
 [data-theme="dark"] {
-  --bg-primary: #0B0F1A;
-  --bg-secondary: #111827;
-  --bg-tertiary: #1E293B;
-  --bg-sidebar: #0F1629;
-  --bg-topbar: rgba(15, 22, 41, 0.88);
-  --bg-card: #151D2E;
-  --bg-card-hover: #1A2438;
-  --bg-input: #1E293B;
-  --bg-overlay: rgba(0, 0, 0, 0.6);
-  --bg-modal: #1A2332;
+  --bg-primary: #0D1018;
+  --bg-secondary: #131722;
+  --bg-tertiary: #1F2533;
+  --bg-sidebar: #10141D;
+  --bg-topbar: rgba(16, 20, 29, 0.88);
+  --bg-card: #171C28;
+  --bg-card-hover: #1C2230;
+  --bg-input: #1F2533;
+  --bg-overlay: rgba(0, 0, 0, 0.62);
+  --bg-modal: #1A1F2C;
 
-  --text-primary: #F1F5F9;
-  --text-secondary: #94A3B8;
-  --text-muted: #64748B;
-  --text-inverse: #0F172A;
-  --text-link: #818CF8;
+  --text-primary: #F2EEE4;
+  --text-secondary: #BDB8AC;
+  --text-muted: #948F84;
+  --text-inverse: #14171F;
+  --text-link: #E0C27A;
+  --text-on-accent: #14171F;
 
-  --accent-soft: rgba(99, 102, 241, 0.15);
-  --accent-soft-hover: rgba(99, 102, 241, 0.25);
+  /* In the dark, gold becomes the action colour */
+  --accent-primary: #D4AF5A;
+  --accent-primary-hover: #E2C273;
+  --accent-secondary: #B8913A;
+  --accent-gradient: linear-gradient(135deg, #D9B865 0%, #C29B45 100%);
+  --accent-gradient-hover: linear-gradient(135deg, #E6C877 0%, #CFA852 100%);
+  --accent-soft: rgba(212, 175, 90, 0.12);
+  --accent-soft-hover: rgba(212, 175, 90, 0.2);
 
-  --status-success-soft: rgba(16, 185, 129, 0.15);
-  --status-warning-soft: rgba(245, 158, 11, 0.15);
-  --status-error-soft: rgba(239, 68, 68, 0.15);
-  --status-info-soft: rgba(59, 130, 246, 0.15);
-  --status-neutral-soft: rgba(100, 116, 139, 0.15);
+  --accent-gold: #D4AF5A;
+  --accent-gold-text: #E0C27A;
+  --accent-gold-soft: rgba(212, 175, 90, 0.14);
+  --medal-silver: #B4BCC6;
+  --medal-bronze: #C98A57;
+  --brand-tile-bg: linear-gradient(145deg, #22345A 0%, #141F38 100%);
 
-  --border-color: #1E293B;
-  --border-color-strong: #334155;
-  --border-color-input: #334155;
+  --status-success: #5FBF8A;
+  --status-success-hover: #4AA874;
+  --status-success-soft: rgba(95, 191, 138, 0.14);
+  --status-warning: #E0A54A;
+  --status-warning-soft: rgba(224, 165, 74, 0.14);
+  --status-error: #E07A7A;
+  --status-error-hover: #CC6262;
+  --status-error-soft: rgba(224, 122, 122, 0.14);
+  --status-info: #7FA9D6;
+  --status-info-soft: rgba(127, 169, 214, 0.14);
+  --status-neutral: #A39E93;
+  --status-neutral-soft: rgba(163, 158, 147, 0.14);
+  --status-special: #C49BC4;
+  --status-special-soft: rgba(196, 155, 196, 0.14);
 
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.35);
-  --shadow-xl: 0 20px 50px rgba(0, 0, 0, 0.45);
-  --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.2);
+  --chart-1: #8FA6D1;
+  --chart-2: #D4AF5A;
+  --chart-3: #6FB3BA;
+  --chart-4: #D37C7C;
+  --chart-5: #94BE9A;
+  --chart-6: #C98A57;
+  --chart-7: #A3AEC6;
+  --chart-8: #B78FB7;
+  --chart-grid: #262D3D;
 
-  --scrollbar-bg: #111827;
-  --scrollbar-thumb: #334155;
-  --scrollbar-thumb-hover: #475569;
+  --border-color: #262D3D;
+  --border-color-strong: #353D50;
+  --border-color-input: #353D50;
+  --border-color-focus: #D4AF5A;
+
+  --focus-ring: 0 0 0 3px rgba(212, 175, 90, 0.4);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 24px 56px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 0 1px rgba(212, 175, 90, 0.35), 0 6px 22px -6px rgba(212, 175, 90, 0.3);
+  --shadow-accent: 0 2px 10px rgba(212, 175, 90, 0.18);
+  --shadow-accent-hover: 0 6px 18px rgba(212, 175, 90, 0.28);
+
+  --scrollbar-bg: #131722;
+  --scrollbar-thumb: #353D50;
+  --scrollbar-thumb-hover: #4A5368;
 }
 
 /* ── Reset & Base ──────────────────────────────────────────── */
@@ -143,7 +219,7 @@ html {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-body);
   background-color: var(--bg-primary);
   color: var(--text-primary);
   line-height: 1.6;
@@ -183,7 +259,12 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--border-color-focus);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: var(--focus-ring);
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 input::placeholder, textarea::placeholder {
@@ -206,9 +287,16 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--text-primary);
 }
 
-h1 { font-size: 2rem; letter-spacing: -0.025em; }
-h2 { font-size: 1.5rem; letter-spacing: -0.02em; }
-h3 { font-size: 1.25rem; letter-spacing: -0.015em; }
+/* Ceremonial serif for primary headings; UI-level headings stay sans */
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-optical-sizing: auto;
+}
+
+h1 { font-size: 2rem; letter-spacing: -0.015em; }
+h2 { font-size: 1.5rem; letter-spacing: -0.01em; }
+h3 { font-size: 1.25rem; letter-spacing: -0.005em; }
 h4 { font-size: 1.125rem; }
 h5 { font-size: 1rem; }
 h6 { font-size: 0.875rem; }
@@ -259,6 +347,14 @@ small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.font-display {
+  font-family: var(--font-display);
 }
 
 /* ── Animations ────────────────────────────────────────────── */

@@ -263,7 +263,7 @@ export default function NomineeProfilePage() {
                 alignItems: 'center',
                 gap: '0.5rem',
                 background: 'var(--accent-primary)',
-                color: '#fff',
+                color: 'var(--text-on-accent)',
                 padding: '0.5rem 1rem',
                 borderRadius: 'var(--radius-md)',
                 cursor: 'pointer',

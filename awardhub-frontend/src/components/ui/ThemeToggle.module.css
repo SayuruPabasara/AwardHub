@@ -19,12 +19,12 @@
 }
 
 .sunIcon {
-  color: #f59e0b;
+  color: var(--accent-gold);
   animation: rotateIn 0.3s ease-out;
 }
 
 .moonIcon {
-  color: #6366f1;
+  color: var(--accent-primary);
   animation: rotateIn 0.3s ease-out;
 }
 

@@ -8,8 +8,13 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+import { useChartPalette, chartTooltipStyle } from '../../utils/chartPalette';
 
 export default function CategoryTimelineChart({ data = [] }) {
+  const palette = useChartPalette();
+  const votesColor = palette.series[0];
+  const nominationsColor = palette.series[1];
+
   if (!data || data.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
@@ -27,30 +32,22 @@ export default function CategoryTimelineChart({ data = [] }) {
         >
           <defs>
             <linearGradient id="colorVotes" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#6366F1" stopOpacity={0.4} />
-              <stop offset="95%" stopColor="#6366F1" stopOpacity={0.0} />
+              <stop offset="5%" stopColor={votesColor} stopOpacity={0.35} />
+              <stop offset="95%" stopColor={votesColor} stopOpacity={0.0} />
             </linearGradient>
             <linearGradient id="colorNominations" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
-              <stop offset="95%" stopColor="#10B981" stopOpacity={0.0} />
+              <stop offset="5%" stopColor={nominationsColor} stopOpacity={0.35} />
+              <stop offset="95%" stopColor={nominationsColor} stopOpacity={0.0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-          <XAxis dataKey="date" stroke="var(--text-muted)" fontSize={12} tickLine={false} />
-          <YAxis stroke="var(--text-muted)" fontSize={12} tickLine={false} />
-          <Tooltip
-            contentStyle={{
-              background: 'var(--bg-card)',
-              borderColor: 'var(--border-color)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--text-primary)',
-              boxShadow: 'var(--shadow-md)',
-            }}
-          />
+          <CartesianGrid strokeDasharray="3 3" stroke={palette.grid} vertical={false} />
+          <XAxis dataKey="date" stroke={palette.axis} fontSize={12} tickLine={false} />
+          <YAxis stroke={palette.axis} fontSize={12} tickLine={false} allowDecimals={false} />
+          <Tooltip contentStyle={chartTooltipStyle} />
           <Area
             type="monotone"
             dataKey="votes"
-            stroke="#6366F1"
+            stroke={votesColor}
             strokeWidth={2}
             fillOpacity={1}
             fill="url(#colorVotes)"
@@ -59,7 +56,7 @@ export default function CategoryTimelineChart({ data = [] }) {
           <Area
             type="monotone"
             dataKey="nominations"
-            stroke="#10B981"
+            stroke={nominationsColor}
             strokeWidth={2}
             fillOpacity={1}
             fill="url(#colorNominations)"

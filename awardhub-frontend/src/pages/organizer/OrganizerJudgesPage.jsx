@@ -184,7 +184,7 @@ export default function OrganizerJudgesPage() {
           size="sm"
           variant="ghost"
           icon={Trash2}
-          style={{ color: '#EF4444' }}
+          style={{ color: 'var(--status-error)' }}
           onClick={() => handleRemoveJudge(row.judgeId || row.id)}
           title="Remove judge from category panel"
         >
@@ -261,9 +261,9 @@ export default function OrganizerJudgesPage() {
           style={{
             padding: '1rem',
             borderRadius: 'var(--radius-md)',
-            background: 'rgba(245, 158, 11, 0.1)',
-            border: '1px solid rgba(245, 158, 11, 0.25)',
-            color: '#F59E0B',
+            background: 'var(--status-warning-soft)',
+            border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
+            color: 'var(--status-warning)',
             fontSize: '0.875rem',
           }}
         >
@@ -379,10 +379,10 @@ export default function OrganizerJudgesPage() {
                 style={{
                   padding: '0.75rem',
                   borderRadius: 'var(--radius-md)',
-                  background: 'rgba(239, 68, 68, 0.08)',
-                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  background: 'var(--status-error-soft)',
+                  border: '1px solid color-mix(in srgb, var(--status-error) 30%, transparent)',
                   fontSize: '0.825rem',
-                  color: '#EF4444',
+                  color: 'var(--status-error)',
                 }}
               >
                 No registered users with JUDGE role found in the database. Ensure judge accounts are registered.
@@ -408,8 +408,8 @@ export default function OrganizerJudgesPage() {
                   width: 38,
                   height: 38,
                   borderRadius: '50%',
-                  background: 'rgba(139, 92, 246, 0.15)',
-                  color: '#A78BFA',
+                  background: 'var(--accent-primary)',
+                  color: 'var(--text-on-accent)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',

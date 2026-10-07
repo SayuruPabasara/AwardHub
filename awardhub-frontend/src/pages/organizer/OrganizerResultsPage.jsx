@@ -243,9 +243,10 @@ export default function OrganizerResultsPage() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.25rem',
-                background: 'linear-gradient(135deg, #F59E0B, #D97706)',
-                color: '#fff',
-                padding: '0.2rem 0.5rem',
+                background: 'var(--gold-gradient)',
+                color: 'var(--text-on-gold)',
+                boxShadow: '0 2px 8px var(--accent-gold-soft)',
+                padding: '0.2rem 0.6rem',
                 borderRadius: '999px',
                 fontWeight: 700,
                 fontSize: '0.8rem',
@@ -273,12 +274,12 @@ export default function OrganizerResultsPage() {
             Dossier Ref #{row.nominationId}
           </span>
           {row.excludedReason && (
-            <span style={{ display: 'block', fontSize: '0.75rem', color: '#EF4444', marginTop: '0.125rem' }}>
+            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--status-error)', marginTop: '0.125rem' }}>
               ⚠️ {row.excludedReason}
             </span>
           )}
           {row.tieBreakNote && (
-            <span style={{ display: 'block', fontSize: '0.75rem', color: '#8B5CF6', marginTop: '0.125rem' }}>
+            <span style={{ display: 'block', fontSize: '0.75rem', color: 'var(--status-special)', marginTop: '0.125rem' }}>
               ℹ️ {row.tieBreakNote}
             </span>
           )}
@@ -389,27 +390,27 @@ export default function OrganizerResultsPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
         <StatCard
           icon={Users}
-          label="Approved Dossiers"
+          title="Approved Dossiers"
           value={progress ? progress.nominations : '—'}
-          color="#3B82F6"
+          accent="blue"
         />
         <StatCard
           icon={Scale}
-          label="Assigned Judges"
+          title="Assigned Judges"
           value={progress ? progress.judges : '—'}
-          color="#8B5CF6"
+          accent="purple"
         />
         <StatCard
           icon={FileCheck}
-          label="Submitted Evaluations"
+          title="Submitted Evaluations"
           value={progress ? `${progress.submittedEvaluations} / ${progress.expectedEvaluations}` : '—'}
-          color="#10B981"
+          accent="green"
         />
         <StatCard
           icon={Calculator}
-          label="Calculation Readiness"
+          title="Calculation Readiness"
           value={progress ? (progress.readyToCalculate ? 'Ready' : 'Blocked') : '—'}
-          color={progress?.readyToCalculate ? '#10B981' : '#EF4444'}
+          accent={progress?.readyToCalculate ? 'green' : 'amber'}
         />
       </div>
 
@@ -419,12 +420,12 @@ export default function OrganizerResultsPage() {
           style={{
             padding: '1rem 1.25rem',
             borderRadius: 'var(--radius-md)',
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.25)',
+            background: 'var(--status-error-soft)',
+            border: '1px solid color-mix(in srgb, var(--status-error) 30%, transparent)',
             display: 'flex',
             alignItems: 'center',
             gap: '0.75rem',
-            color: '#F87171',
+            color: 'var(--status-error)',
           }}
         >
           <AlertTriangle size={20} style={{ flexShrink: 0 }} />
@@ -441,8 +442,8 @@ export default function OrganizerResultsPage() {
           style={{
             padding: '1rem 1.25rem',
             borderRadius: 'var(--radius-md)',
-            background: 'rgba(245, 158, 11, 0.12)',
-            border: '1px solid rgba(245, 158, 11, 0.3)',
+            background: 'var(--status-warning-soft)',
+            border: '1px solid color-mix(in srgb, var(--status-warning) 30%, transparent)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -451,9 +452,9 @@ export default function OrganizerResultsPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <AlertTriangle size={22} color="#F59E0B" />
+            <AlertTriangle size={22} color="var(--status-warning)" />
             <div>
-              <strong style={{ color: '#FBBF24', fontSize: '0.95rem' }}>
+              <strong style={{ color: 'var(--status-warning)', fontSize: '0.95rem' }}>
                 Unresolved Tie at Top Rank!
               </strong>
               <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.825rem', color: 'var(--text-secondary)' }}>

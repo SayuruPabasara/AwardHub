@@ -14,7 +14,7 @@ export function StarDisplay({ value, size = 14 }) {
           size={size}
           className={n <= value ? styles.starOn : ''}
           fill={n <= value ? 'currentColor' : 'none'}
-          style={{ color: n <= value ? '#f59e0b' : 'var(--border-color)' }}
+          style={{ color: n <= value ? 'var(--accent-gold)' : 'var(--border-color)' }}
         />
       ))}
     </span>

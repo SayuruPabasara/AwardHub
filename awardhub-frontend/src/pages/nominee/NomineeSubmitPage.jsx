@@ -205,17 +205,19 @@ export default function NomineeSubmitPage() {
                   width: 42,
                   height: 42,
                   borderRadius: '50%',
-                  background: isCurrent || isDone ? 'var(--accent-primary)' : 'var(--bg-card)',
-                  color: isCurrent || isDone ? '#fff' : 'var(--text-muted)',
-                  border: isCurrent || isDone
-                    ? '2px solid var(--accent-primary)'
+                  background: isCurrent ? 'var(--accent-primary)' : isDone ? 'var(--status-success)' : 'var(--bg-card)',
+                  color: isCurrent || isDone ? 'var(--text-on-accent)' : 'var(--text-muted)',
+                  border: isCurrent
+                    ? '2px solid var(--accent-gold)'
+                    : isDone
+                    ? '2px solid var(--status-success)'
                     : '2px solid var(--border-color)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 700,
                   fontSize: '0.875rem',
-                  boxShadow: isCurrent ? '0 0 12px rgba(99, 102, 241, 0.35)' : 'none',
+                  boxShadow: isCurrent ? '0 0 0 3px var(--accent-gold-soft), var(--shadow-sm)' : 'none',
                 }}
               >
                 <Icon size={18} />
@@ -224,7 +226,7 @@ export default function NomineeSubmitPage() {
                 style={{
                   fontSize: '0.8125rem',
                   fontWeight: isCurrent ? 600 : 500,
-                  color: isCurrent ? 'var(--text-primary)' : 'var(--text-muted)',
+                  color: isCurrent ? 'var(--text-primary)' : isDone ? 'var(--text-secondary)' : 'var(--text-muted)',
                 }}
               >
                 {item.label}
@@ -274,6 +276,8 @@ export default function NomineeSubmitPage() {
                         borderRadius: 'var(--radius-md)',
                         border: isSelected
                           ? '2px solid var(--accent-primary)'
+                          : isClosed
+                          ? '1px dashed var(--border-color-strong)'
                           : '1px solid var(--border-color)',
                         background: isSelected
                           ? 'var(--accent-soft)'
@@ -281,7 +285,6 @@ export default function NomineeSubmitPage() {
                           ? 'var(--bg-tertiary)'
                           : 'var(--bg-card)',
                         cursor: isClosed ? 'not-allowed' : 'pointer',
-                        opacity: isClosed ? 0.6 : 1,
                         transition: 'all var(--transition-fast)',
                         position: 'relative',
                         display: 'flex',
@@ -295,7 +298,8 @@ export default function NomineeSubmitPage() {
                             style={{
                               fontSize: '0.75rem',
                               fontWeight: 700,
-                              color: 'var(--accent-primary)',
+                              letterSpacing: '0.03em',
+                              color: 'var(--accent-gold-text)',
                             }}
                           >
                             {cat.code || `CAT #${cat.id}`}
@@ -305,14 +309,14 @@ export default function NomineeSubmitPage() {
                         <h4 style={{ margin: '0.25rem 0 0.5rem 0', fontSize: '1rem', fontWeight: 600 }}>
                           {cat.name}
                         </h4>
-                        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        <p style={{ margin: 0, fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
                           {cat.description || 'Award category open for nominations.'}
                         </p>
                       </div>
 
                       {cat.nominationEndDate && (
-                        <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          <Calendar size={13} />
+                        <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                          <Calendar size={13} style={{ color: 'var(--accent-gold-text)' }} />
                           <span>Deadline: {formatDateTime(cat.nominationEndDate)}</span>
                         </div>
                       )}

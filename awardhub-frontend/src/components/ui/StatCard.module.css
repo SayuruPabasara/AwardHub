@@ -57,9 +57,10 @@
   color: var(--status-info);
 }
 
-.purple .iconWrapper {
-  background: rgba(168, 85, 247, 0.1);
-  color: #a855f7;
+.purple .iconWrapper,
+.gold .iconWrapper {
+  background: var(--accent-gold-soft);
+  color: var(--accent-gold-text);
 }
 
 .value {
@@ -67,6 +68,7 @@
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
 .footer {

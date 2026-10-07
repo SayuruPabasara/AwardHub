@@ -8,8 +8,11 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts';
+import { useChartPalette, chartTooltipStyle } from '../../utils/chartPalette';
 
 export default function JudgeScoringChart({ data = [] }) {
+  const palette = useChartPalette();
+
   if (!data || data.length === 0) {
     return (
       <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
@@ -22,32 +25,25 @@ export default function JudgeScoringChart({ data = [] }) {
     <div style={{ width: '100%', height: 320 }}>
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius="75%" data={data}>
-          <PolarGrid stroke="var(--border-color)" />
+          <PolarGrid stroke={palette.grid} />
           <PolarAngleAxis
             dataKey="criterion"
-            stroke="var(--text-secondary)"
+            stroke={palette.axisStrong}
             fontSize={12}
           />
           <PolarRadiusAxis
             angle={30}
             domain={[0, 100]}
-            stroke="var(--text-muted)"
+            stroke={palette.axis}
             fontSize={10}
           />
-          <Tooltip
-            contentStyle={{
-              background: 'var(--bg-card)',
-              borderColor: 'var(--border-color)',
-              borderRadius: 'var(--radius-md)',
-              color: 'var(--text-primary)',
-            }}
-          />
+          <Tooltip contentStyle={chartTooltipStyle} />
           <Radar
             name="Score"
             dataKey="score"
-            stroke="#8B5CF6"
-            fill="#8B5CF6"
-            fillOpacity={0.4}
+            stroke={palette.gold}
+            fill={palette.gold}
+            fillOpacity={0.35}
           />
         </RadarChart>
       </ResponsiveContainer>
