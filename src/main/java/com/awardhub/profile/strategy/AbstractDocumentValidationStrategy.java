@@ -7,12 +7,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Shared plumbing for the concrete strategies: each subclass only declares
- * WHICH types it handles, WHICH extensions it accepts and HOW LARGE a file
- * may be. The checking steps themselves live here once, so the concrete
- * strategies stay tiny and do not repeat code.
- */
+
 public abstract class AbstractDocumentValidationStrategy implements DocumentValidationStrategy {
 
     private final Set<NomineeDocumentType> supportedTypes;

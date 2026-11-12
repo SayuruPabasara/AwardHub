@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Set;
 
-/** Concrete strategy: profile photo (images only, smallest size limit). */
+//Concrete strategy: profile photo (images only, smallest size limit)
 @Component
 public class ProfilePhotoValidationStrategy extends AbstractDocumentValidationStrategy {
 

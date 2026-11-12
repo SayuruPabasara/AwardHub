@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Set;
 
-/** Concrete strategy: any other supporting document (most lenient rules). */
+//Concrete strategy: any other supporting document (most lenient rules)
 @Component
 public class GeneralDocumentValidationStrategy extends AbstractDocumentValidationStrategy {
 

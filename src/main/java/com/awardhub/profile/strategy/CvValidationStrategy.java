@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Set;
 
-/** Concrete strategy: CV / resume (text documents only, no images). */
+//Concrete strategy: CV / resume (text documents only, no images)
 @Component
 public class CvValidationStrategy extends AbstractDocumentValidationStrategy {
 

@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Set;
 
-/** Concrete strategy: NIC / passport copy (scan or photo, small size). */
+//Concrete strategy: NIC / passport copy (scan or photo, small size).
 @Component
 public class IdentityDocumentValidationStrategy extends AbstractDocumentValidationStrategy {
 

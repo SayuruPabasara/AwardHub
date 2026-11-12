@@ -8,32 +8,19 @@
 -- Password Hash: $2a$10$tkg/OJ4KueavxE99i3KxPevjcpJRiiI1itodAT/HBbqd04djuiomS
 -- =============================================================================
 --
--- QUICK LOGIN CHEATSHEET FOR EVALUATORS:
+-- QUICK LOGIN CHEATSHEET FOR EVALUATORS (1 Account Per Role):
 -- +--------------------------+-----------------------+-----------------------+----------------------+
 -- | Role                     | Username              | Password              | Account Status       |
 -- +--------------------------+-----------------------+-----------------------+----------------------+
 -- | System Administrator     | admin                 | password123           | ACTIVE               |
 -- | Head Organizer           | head_organizer        | password123           | ACTIVE               |
--- | Award Organizer (Lead)   | organizer_lead        | password123           | ACTIVE               |
+-- | Award Organizer          | organizer_lead        | password123           | ACTIVE               |
 -- | Organizing Team Member   | organizer_member      | password123           | ACTIVE               |
 -- | IT Coordinator           | it_coordinator        | password123           | ACTIVE               |
 -- | Compliance / Auditor     | auditor_james         | password123           | ACTIVE               |
--- | Judge (Chief Judge)      | dr_miller             | password123           | ACTIVE               |
--- | Judge (Cloud / Infra)    | prof_elena            | password123           | ACTIVE               |
--- | Judge (AI Specialist)    | judge_rajesh          | password123           | ACTIVE               |
--- | Judge (Ethics / Recused) | judge_sophia          | password123           | ACTIVE               |
--- | Nominee (AI Winner)      | nominee_alex          | password123           | ACTIVE               |
--- | Nominee (Green Tech)     | nominee_clara         | password123           | ACTIVE               |
--- | Nominee (Draft In-Prog)  | nominee_marcus        | password123           | ACTIVE               |
--- | Nominee (Submitted)      | nominee_aisha         | password123           | ACTIVE               |
--- | Nominee (Under Review)   | nominee_devon         | password123           | ACTIVE               |
--- | Nominee (Pending ID)     | nominee_pending       | password123           | PENDING_VERIFICATION |
--- | Voter 1 (Active)         | voter_sarah           | password123           | ACTIVE               |
--- | Voter 2 (Active)         | voter_david           | password123           | ACTIVE               |
--- | Voter 3 (Active)         | voter_emma            | password123           | ACTIVE               |
--- | Voter 4 (Active)         | voter_liam            | password123           | ACTIVE               |
--- | Voter 5 (Suspended)      | voter_suspended       | password123           | SUSPENDED            |
--- | Voter 6 (Deactivated)    | user_deactivated      | password123           | DEACTIVATED          |
+-- | Judge                    | dr_miller             | password123           | ACTIVE               |
+-- | Nominee                  | nominee_alex          | password123           | ACTIVE               |
+-- | Voter                    | voter_sarah           | password123           | ACTIVE               |
 -- +--------------------------+-----------------------+-----------------------+----------------------+
 --
 -- VARIATIONS REPRESENTED ACROSS ALL MODULES:

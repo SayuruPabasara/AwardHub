@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.Set;
 
-/** Concrete strategy: certificates and achievement proofs (scans or photos, larger size allowed). */
+//Concrete strategy: certificates and achievement proofs (scans or photos, larger size allowed)
 @Component
 public class EvidenceDocumentValidationStrategy extends AbstractDocumentValidationStrategy {
 
