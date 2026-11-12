@@ -6,8 +6,10 @@ import com.awardhub.user.entity.Nominee;
 public class NomineeProfileResponse {
 
     private Long userId;
+    private String fullName;
     private String email;
     private String contactNumber;
+    private String website;
     private AccountStatus accountStatus;
     private String nicPassport;
     private String dateOfBirth;
@@ -28,8 +30,10 @@ public class NomineeProfileResponse {
     public static NomineeProfileResponse fromEntity(Nominee n) {
         NomineeProfileResponse dto = new NomineeProfileResponse();
         dto.setUserId(n.getUserID());
+        dto.setFullName(n.getFullName());
         dto.setEmail(n.getEmail());
         dto.setContactNumber(n.getContactNumber());
+        dto.setWebsite(n.getWebsite());
         dto.setAccountStatus(n.getAccountStatus());
         dto.setNicPassport(n.getNicPassport());
         dto.setDateOfBirth(n.getDateOfBirth());
@@ -55,6 +59,22 @@ public class NomineeProfileResponse {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
+    }
+
+    public String getWebsite() {
+        return website;
+    }
+
+    public void setWebsite(String website) {
+        this.website = website;
     }
 
     public String getEmail() {

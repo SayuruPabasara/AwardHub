@@ -8,6 +8,7 @@ import com.awardhub.profile.entity.NomineeDocument;
 import com.awardhub.profile.entity.NomineeDocumentType;
 import com.awardhub.profile.repository.NomineeDocumentRepository;
 import com.awardhub.profile.repository.NomineeProfileRepository;
+import com.awardhub.profile.strategy.DocumentValidationContext;
 import com.awardhub.user.entity.Nominee;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,15 +23,18 @@ public class NomineeDocumentService {
     private final NomineeProfileRepository nomineeRepository;
     private final NomineeDocumentStorageService storageService;
     private final AuditLogService auditLogService;
+    private final DocumentValidationContext validationContext;
 
     public NomineeDocumentService(NomineeDocumentRepository documentRepository,
                                    NomineeProfileRepository nomineeRepository,
                                    NomineeDocumentStorageService storageService,
-                                   AuditLogService auditLogService) {
+                                   AuditLogService auditLogService,
+                                   DocumentValidationContext validationContext) {
         this.documentRepository = documentRepository;
         this.nomineeRepository = nomineeRepository;
         this.storageService = storageService;
         this.auditLogService = auditLogService;
+        this.validationContext = validationContext;
     }
 
     @Transactional
@@ -41,6 +45,9 @@ public class NomineeDocumentService {
         if (documentType == null) {
             throw new IllegalArgumentException("documentType is required");
         }
+
+        // Strategy pattern: validate using the rules that match this document type
+        validationContext.validate(documentType, file);
 
         String storedFileName = storageService.store(file);
 
